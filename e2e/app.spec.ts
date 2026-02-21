@@ -296,6 +296,47 @@ test.describe("Wafflemaker E2E", () => {
     expect(errors).toHaveLength(0);
   });
 
+  test("expand waffle, play audio, add timestamped comment", async ({ page }) => {
+    // Uses seeded data — reliable, no headless mic issues
+    await loginAs(page, "seed-bob@test.com");
+
+    const bobLink = page.getByRole("link", { name: "Alice" });
+    await expect(bobLink).toBeVisible({ timeout: 5000 });
+    await bobLink.click();
+    await page.waitForURL("**/pair/**");
+
+    // Waffles should be visible
+    await expect(page.getByText("Weekly catchup")).toBeVisible({ timeout: 5000 });
+
+    // Click to expand Alice's waffle
+    await page.getByText("Weekly catchup").click();
+
+    // Expanded view: audio player, transcript, description, comments, and input
+    await expect(page.getByPlaceholder(/comment/)).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText("Ooh which coffee place?")).toBeVisible(); // existing comment
+
+    // Play the audio
+    const [audioResponse] = await Promise.all([
+      page.waitForResponse((resp) =>
+        resp.url().includes("/api/waffles/audio/") && resp.status() === 200
+      ),
+      page.locator("button").filter({ hasText: "▶" }).first().click(),
+    ]);
+    expect(audioResponse.status()).toBe(200);
+
+    // Add a new timestamped comment while playing
+    const commentInput = page.getByPlaceholder(/comment/i).first();
+    await commentInput.fill("This is a great point!");
+    await page.getByRole("button", { name: "Send" }).click();
+
+    // Comment should appear in the thread
+    await expect(page.getByText("This is a great point!")).toBeVisible({
+      timeout: 5000,
+    });
+    // Bob's name should be in the comment
+    await expect(page.getByText("Bob:").first()).toBeVisible();
+  });
+
   test("seeded waffles play audio and show comments", async ({ page }) => {
     // Login as seed-alice
     await loginAs(page, "seed-alice@test.com");
