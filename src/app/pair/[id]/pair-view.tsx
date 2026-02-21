@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
+declare global {
+  interface Window {
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
 interface Waffle {
   id: string;
   sender_id: string;
@@ -72,6 +78,8 @@ export function PairView({
   const chunks = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const transcriptRef = useRef<string>("");
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const loadWaffles = useCallback(async () => {
     const res = await fetch(`/api/waffles/${pairId}`);
@@ -101,6 +109,36 @@ export function PairView({
       setRecording(true);
       setRecordingTime(0);
 
+      // Start speech recognition for transcription
+      transcriptRef.current = "";
+      const SpeechRecognitionAPI =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognitionAPI) {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              transcriptRef.current += event.results[i][0].transcript;
+            }
+          }
+        };
+        recognition.onend = () => {
+          // Recognition auto-stops periodically; restart if still recording
+          if (mediaRecorder.current?.state === "recording") {
+            try {
+              recognition.start();
+            } catch {
+              // already started or stopped
+            }
+          }
+        };
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
+
       timerRef.current = setInterval(() => {
         setRecordingTime((t) => t + 1);
       }, 1000);
@@ -125,11 +163,19 @@ export function PairView({
   async function stopRecording() {
     const duration = recordingTime;
 
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
+    const transcript = transcriptRef.current.trim();
+
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
       mediaRecorder.current.onstop = async () => {
         mediaRecorder.current!.stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks.current, { type: "audio/webm" });
-        await uploadWaffle(blob, duration);
+        await uploadWaffle(blob, duration, transcript);
       };
       mediaRecorder.current.stop();
     }
@@ -137,12 +183,13 @@ export function PairView({
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
-  async function uploadWaffle(blob: Blob, duration: number) {
+  async function uploadWaffle(blob: Blob, duration: number, transcript: string) {
     setUploading(true);
     const formData = new FormData();
     formData.append("pairId", pairId);
     formData.append("audio", blob, "waffle.webm");
     formData.append("duration", String(duration));
+    formData.append("transcript", transcript);
 
     await fetch("/api/waffles", { method: "POST", body: formData });
     setUploading(false);
@@ -228,23 +275,21 @@ export function PairView({
                     {w.sender_name} &middot; {formatDate(w.created_at)}
                   </p>
                 </button>
-                {w.transcript && (
-                  <button
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : w.id)
-                    }
-                    className={`rounded-lg border-2 px-2.5 py-1 text-xs font-semibold transition-all ${
-                      isExpanded
-                        ? "border-waffle bg-butter-deep text-syrup"
-                        : "border-waffle-light/50 bg-butter text-waffle-dark hover:border-waffle hover:bg-butter-deep"
-                    }`}
-                    aria-label="Toggle transcript"
-                  >
-                    Aa
-                  </button>
-                )}
+                <button
+                  onClick={() =>
+                    setExpandedId(isExpanded ? null : w.id)
+                  }
+                  className={`rounded-lg border-2 px-2.5 py-1 text-xs font-semibold transition-all ${
+                    isExpanded
+                      ? "border-waffle bg-butter-deep text-syrup"
+                      : "border-waffle-light/50 bg-butter text-waffle-dark hover:border-waffle hover:bg-butter-deep"
+                  }`}
+                  aria-label="Toggle transcript"
+                >
+                  Aa
+                </button>
               </div>
-              {isExpanded && w.transcript && (
+              {isExpanded && (
                 <div
                   className={`mt-2 max-w-[280px] rounded-xl border-2 border-dashed p-3 text-sm leading-relaxed ${
                     isMine
@@ -252,7 +297,7 @@ export function PairView({
                       : "border-waffle-light/30 bg-cream text-waffle-dark"
                   }`}
                 >
-                  {w.transcript}
+                  {w.transcript || <span className="italic opacity-60">No transcript available</span>}
                 </div>
               )}
             </div>
