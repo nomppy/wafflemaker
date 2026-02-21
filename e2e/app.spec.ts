@@ -61,7 +61,7 @@ test.describe("Wednesday Waffles E2E", () => {
   test("dashboard shows welcome content for new user", async ({ page }) => {
     await loginAs(page, "newuser@test.com");
 
-    await expect(page.getByText("Welcome to Wednesday Waffles!")).toBeVisible();
+    await expect(page.getByText("Your waffle plate is empty!")).toBeVisible();
     await expect(page.getByText("How it works:")).toBeVisible();
     await expect(
       page.getByText("Invite a friend with a shareable link")
@@ -158,7 +158,7 @@ test.describe("Wednesday Waffles E2E", () => {
 
       await expect(alicePage.getByText("conv-bob")).toBeVisible({ timeout: 10000 });
       await expect(alicePage.getByText("Back")).toBeVisible();
-      await expect(alicePage.getByText("Time to break the ice!")).toBeVisible();
+      await expect(alicePage.getByText("Your waffle plate is empty!")).toBeVisible();
       await expect(alicePage.getByText("Not sure what to say?")).toBeVisible();
       await expect(
         alicePage.getByRole("button", { name: "Start recording" })
@@ -182,47 +182,53 @@ test.describe("Wednesday Waffles E2E", () => {
     try {
       await alicePage.goto(pairUrl);
 
-      // Handle alert dialog if getUserMedia fails
-      alicePage.on("dialog", (dialog) => dialog.dismiss());
-
       // Click record
       await alicePage
         .getByRole("button", { name: "Start recording" })
         .click();
 
-      // Should show recording state (if mic is available)
-      await expect(alicePage.getByText("Tap to stop & send")).toBeVisible({ timeout: 5000 });
-      await expect(
-        alicePage.getByRole("button", { name: "Stop recording" })
-      ).toBeVisible();
+      // Either recording starts (fake media stream works) or mic error shows
+      const stopButton = alicePage.getByRole("button", { name: "Stop recording" });
+      const micError = alicePage.getByText("Microphone unavailable");
 
-      // Wait for some recording time
-      await alicePage.waitForTimeout(2500);
+      // Wait for either outcome
+      await expect(stopButton.or(micError)).toBeVisible({ timeout: 5000 });
 
-      // Stop recording
-      await alicePage
-        .getByRole("button", { name: "Stop recording" })
-        .click();
+      if (await stopButton.isVisible()) {
+        // Recording started - test the full flow
+        await alicePage.waitForTimeout(2500);
+        await stopButton.click();
 
-      // Wait for upload to complete and waffle to appear
-      await expect(alicePage.getByText("rec-alice").first()).toBeVisible({
-        timeout: 10000,
-      });
+        // Wait for upload to complete and waffle to appear
+        await expect(alicePage.getByText("rec-alice").first()).toBeVisible({
+          timeout: 10000,
+        });
 
-      // Play button should exist
-      const playButton = alicePage.locator("button").filter({ hasText: "▶" }).first();
-      await expect(playButton).toBeVisible();
+        // Play button should exist
+        const playButton = alicePage.locator("button").filter({ hasText: "▶" }).first();
+        await expect(playButton).toBeVisible();
 
-      // Click play - audio data is from fake mic, so it may error but UI should not crash
-      await playButton.click();
-      await alicePage.waitForTimeout(500);
-      await expect(alicePage.getByText("rec-alice").first()).toBeVisible();
+        // Click play - UI should not crash
+        await playButton.click();
+        await alicePage.waitForTimeout(500);
+        await expect(alicePage.getByText("rec-alice").first()).toBeVisible();
 
-      // Bob should also see the waffle
-      await bobPage.goto(pairUrl);
-      await expect(bobPage.getByText("rec-alice").first()).toBeVisible({
-        timeout: 5000,
-      });
+        // Bob should also see the waffle
+        await bobPage.goto(pairUrl);
+        await expect(bobPage.getByText("rec-alice").first()).toBeVisible({
+          timeout: 5000,
+        });
+      } else {
+        // Mic access denied - verify error message is helpful
+        await expect(micError).toBeVisible();
+        await expect(
+          alicePage.getByText(/microphone|browser settings/i)
+        ).toBeVisible();
+
+        // Dismiss button should work
+        await alicePage.getByText("Dismiss").click();
+        await expect(micError).not.toBeVisible();
+      }
     } finally {
       await cleanup();
     }

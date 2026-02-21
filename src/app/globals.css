@@ -1,5 +1,530 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
+/* ===== CSS Custom Properties — Breakfast Palette ===== */
+@theme {
+  --color-waffle: #c8913a;
+  --color-waffle-dark: #a0722c;
+  --color-waffle-light: #e8c47a;
+  --color-butter: #fef3c7;
+  --color-butter-deep: #fde68a;
+  --color-syrup: #5c3310;
+  --color-syrup-light: #b45309;
+  --color-cream: #fffbf0;
+  --color-cream-dark: #fef5e2;
+  --color-berry: #be185d;
+  --color-berry-light: #f9a8d4;
+  --color-jam: #9f1239;
+  --color-linen: #faf5eb;
+  --color-sage: #8a9a6c;
+  --color-sage-light: #c5d4a8;
+
+  --font-display: 'Fredoka', 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ===== Base Styles ===== */
+body {
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* Smooth page transitions */
+main, .page-content {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Gingham Tablecloth Background ===== */
+.bg-gingham {
+  background-color: var(--color-cream);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 20px,
+      rgba(200, 145, 58, 0.04) 20px,
+      rgba(200, 145, 58, 0.04) 40px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 20px,
+      rgba(200, 145, 58, 0.04) 20px,
+      rgba(200, 145, 58, 0.04) 40px
+    );
+}
+
+/* ===== Waffle Grid Texture (for cards) ===== */
+.bg-waffle-texture {
+  background-color: var(--color-butter);
+  background-image:
+    linear-gradient(rgba(200, 145, 58, 0.1) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(200, 145, 58, 0.1) 2px, transparent 2px);
+  background-size: 14px 14px;
+}
+
+/* ===== Retro 3D Buttons ===== */
+.btn-retro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 2.5px solid var(--color-waffle-dark);
+  background: linear-gradient(180deg, var(--color-waffle-light) 0%, var(--color-waffle) 100%);
+  color: var(--color-syrup);
+  box-shadow:
+    0 4px 0 0 var(--color-waffle-dark),
+    0 6px 12px rgba(146, 64, 14, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.1s ease;
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+  position: relative;
+  top: 0;
+  letter-spacing: 0.02em;
+}
+
+.btn-retro:hover {
+  background: linear-gradient(180deg, #efd08a 0%, #d4a040 100%);
+  box-shadow:
+    0 5px 0 0 var(--color-waffle-dark),
+    0 8px 16px rgba(146, 64, 14, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  top: -1px;
+  filter: brightness(1.04);
+}
+
+.btn-retro:active {
+  box-shadow:
+    0 1px 0 0 var(--color-waffle-dark),
+    0 2px 4px rgba(146, 64, 14, 0.2);
+  top: 3px;
+  filter: brightness(0.97);
+}
+
+/* Berry variant */
+.btn-retro-berry {
+  border-color: var(--color-jam);
+  background: linear-gradient(180deg, #f9a8d4 0%, #ec4899 100%);
+  color: white;
+  box-shadow:
+    0 4px 0 0 var(--color-jam),
+    0 6px 12px rgba(159, 18, 57, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.btn-retro-berry:hover {
+  background: linear-gradient(180deg, #fbb6d0 0%, #f472b6 100%);
+  box-shadow:
+    0 5px 0 0 var(--color-jam),
+    0 8px 16px rgba(159, 18, 57, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.btn-retro-berry:active {
+  box-shadow:
+    0 1px 0 0 var(--color-jam),
+    0 2px 4px rgba(159, 18, 57, 0.2);
+  top: 3px;
+}
+
+/* Cream/Soft variant */
+.btn-retro-cream {
+  border-color: var(--color-waffle-light);
+  background: linear-gradient(180deg, #fff 0%, var(--color-cream-dark) 100%);
+  color: var(--color-waffle-dark);
+  box-shadow:
+    0 3px 0 0 var(--color-waffle-light),
+    0 5px 10px rgba(200, 145, 58, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  text-shadow: none;
+}
+
+.btn-retro-cream:hover {
+  background: linear-gradient(180deg, #fff 0%, var(--color-butter) 100%);
+  border-color: var(--color-waffle);
+  box-shadow:
+    0 4px 0 0 var(--color-waffle-light),
+    0 7px 14px rgba(200, 145, 58, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.btn-retro-cream:active {
+  box-shadow:
+    0 1px 0 0 var(--color-waffle-light),
+    0 2px 4px rgba(200, 145, 58, 0.1);
+  top: 2px;
+}
+
+/* ===== Dashed Border Cards ===== */
+.card-cottage {
+  background: white;
+  border: 2.5px dashed var(--color-waffle-light);
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(200, 145, 58, 0.08);
+  transition: all 0.2s ease;
+}
+
+.card-cottage:hover {
+  box-shadow: 0 4px 20px rgba(200, 145, 58, 0.16);
+  border-color: var(--color-waffle);
+  transform: translateY(-1px);
+}
+
+/* ===== Record Button — Waffle Iron ===== */
+.btn-record {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255,255,255,0.25) 0%, transparent 50%),
+    linear-gradient(145deg, #e8c47a 0%, #c8913a 50%, #a0722c 100%);
+  border: 3.5px solid var(--color-waffle-dark);
+  box-shadow:
+    0 6px 0 0 #7a5520,
+    0 8px 20px rgba(122, 85, 32, 0.35),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-record::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background-image:
+    linear-gradient(rgba(122, 85, 32, 0.18) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(122, 85, 32, 0.18) 2px, transparent 2px);
+  background-size: 10px 10px;
+  pointer-events: none;
+}
+
+.btn-record:hover {
+  top: -2px;
+  box-shadow:
+    0 8px 0 0 #7a5520,
+    0 12px 28px rgba(122, 85, 32, 0.4),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+  filter: brightness(1.06);
+}
+
+.btn-record:active {
+  top: 4px;
+  box-shadow:
+    0 2px 0 0 #7a5520,
+    0 3px 8px rgba(122, 85, 32, 0.3),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3);
+  filter: brightness(0.95);
+}
+
+/* Recording state */
+.btn-record-active {
+  background:
+    radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2) 0%, transparent 50%),
+    linear-gradient(145deg, #fca5a5 0%, #ef4444 50%, #dc2626 100%);
+  border-color: #991b1b;
+  box-shadow:
+    0 6px 0 0 #991b1b,
+    0 8px 24px rgba(239, 68, 68, 0.4),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3);
+  animation: pulse-record 1.5s ease-in-out infinite;
+}
+
+.btn-record-active::before {
+  background-image: none;
+}
+
+.btn-record-active:hover {
+  box-shadow:
+    0 8px 0 0 #991b1b,
+    0 12px 28px rgba(239, 68, 68, 0.5),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3);
+}
+
+.btn-record-active:active {
+  box-shadow:
+    0 2px 0 0 #991b1b,
+    0 3px 8px rgba(153, 27, 27, 0.3),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes pulse-record {
+  0%, 100% { transform: scale(1); box-shadow: 0 6px 0 0 #991b1b, 0 8px 24px rgba(239, 68, 68, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.3); }
+  50% { transform: scale(1.06); box-shadow: 0 6px 0 0 #991b1b, 0 8px 32px rgba(239, 68, 68, 0.55), inset 0 2px 6px rgba(255, 255, 255, 0.3); }
+}
+
+/* ===== Steam Animation ===== */
+@keyframes steam-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scaleX(1);
+  }
+  15% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.3;
+    transform: translateY(-20px) scaleX(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scaleX(0.8);
+  }
+}
+
+.steam-wisp {
+  animation: steam-rise 2.5s ease-out infinite;
+}
+
+.steam-wisp-delayed {
+  animation: steam-rise 2.5s ease-out 0.8s infinite;
+}
+
+.steam-wisp-slow {
+  animation: steam-rise 3s ease-out 1.5s infinite;
+}
+
+/* ===== Visitor Counter Style ===== */
+.counter-retro {
+  font-family: 'Courier New', monospace;
+  background: linear-gradient(180deg, #2a1a0e 0%, #1a1008 100%);
+  color: #fbbf24;
+  border: 2px solid #5c3310;
+  border-style: inset;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.5);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== Syrup Drip Divider ===== */
+.divider-syrup {
+  height: 4px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-waffle-light) 20%, var(--color-waffle) 50%, var(--color-waffle-light) 80%, transparent 100%);
+  border-radius: 2px;
+  position: relative;
+}
+
+.divider-syrup::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-cream);
+  padding: 0 8px;
+  font-size: 1rem;
+}
+
+/* ===== Sparkle on Hover (tasteful) ===== */
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 3s ease-in-out 1s infinite;
+}
+
+.animate-float-slow {
+  animation: float 4s ease-in-out 0.5s infinite;
+}
+
+/* ===== Safe Area ===== */
 .safe-b {
   padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-waffle-light);
+  border-radius: 4px;
+  border: 2px solid var(--color-cream);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-waffle);
+}
+
+/* ===== Message Bubbles ===== */
+.bubble-mine {
+  background: linear-gradient(135deg, var(--color-waffle) 0%, var(--color-waffle-dark) 100%);
+  color: white;
+  border: 2.5px solid var(--color-waffle-dark);
+  border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+  box-shadow:
+    0 2px 8px rgba(160, 114, 44, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.bubble-theirs {
+  background: linear-gradient(135deg, #fff 0%, var(--color-cream) 100%);
+  color: var(--color-syrup);
+  border: 2.5px dashed var(--color-waffle-light);
+  border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+  box-shadow: 0 2px 8px rgba(200, 145, 58, 0.1);
+  transition: all 0.2s ease;
+}
+
+.bubble-mine:hover {
+  box-shadow:
+    0 4px 16px rgba(160, 114, 44, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.bubble-theirs:hover {
+  border-style: solid;
+  box-shadow: 0 4px 16px rgba(200, 145, 58, 0.18);
+  transform: translateY(-1px);
+}
+
+/* ===== Prompt Card ===== */
+.prompt-card {
+  background: linear-gradient(135deg, var(--color-butter) 0%, var(--color-cream-dark) 100%);
+  border: 2.5px dashed var(--color-waffle-light);
+  border-radius: 0.75rem;
+  position: relative;
+}
+
+/* ===== Input styling ===== */
+.input-cottage {
+  border: 2.5px solid var(--color-waffle-light);
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+}
+
+.input-cottage:focus {
+  outline: none;
+  border-color: var(--color-waffle);
+  box-shadow: 0 0 0 3px rgba(200, 145, 58, 0.15), 0 2px 8px rgba(200, 145, 58, 0.1);
+}
+
+/* ===== Linen Paper Texture (subtle) ===== */
+.bg-linen {
+  background-color: var(--color-linen);
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c8913a' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ===== Decorative Waffle Border (for hero sections) ===== */
+.border-waffle-pattern {
+  border-image: repeating-linear-gradient(
+    90deg,
+    var(--color-waffle-light) 0px,
+    var(--color-waffle-light) 8px,
+    transparent 8px,
+    transparent 12px,
+    var(--color-waffle) 12px,
+    var(--color-waffle) 14px,
+    transparent 14px,
+    transparent 18px
+  ) 4;
+}
+
+/* ===== Web Ring Footer ===== */
+.webring-footer {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--color-waffle-dark);
+  opacity: 0.7;
+}
+
+.webring-footer a {
+  color: var(--color-waffle);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+.webring-footer a:hover {
+  color: var(--color-berry);
+  text-decoration-style: solid;
+}
+
+/* ===== Retro Link Style ===== */
+.link-retro {
+  color: var(--color-waffle-dark);
+  text-decoration: underline;
+  text-decoration-color: var(--color-waffle-light);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition: all 0.15s ease;
+}
+
+.link-retro:hover {
+  color: var(--color-berry);
+  text-decoration-color: var(--color-berry-light);
+}
+
+/* ===== Kitchen Tile Pattern (for headers/footers) ===== */
+.bg-kitchen-tile {
+  background-color: var(--color-butter);
+  background-image:
+    linear-gradient(45deg, var(--color-cream) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-cream) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-cream) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-cream) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+/* ===== Sticker-style badge ===== */
+.badge-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: var(--color-butter);
+  border: 2px solid var(--color-waffle-light);
+  color: var(--color-waffle-dark);
+  transform: rotate(-2deg);
+  box-shadow: 0 2px 4px rgba(200, 145, 58, 0.15);
 }

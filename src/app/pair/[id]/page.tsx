@@ -35,12 +35,18 @@ export default async function PairPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col p-6">
       <div className="mb-6 flex items-center gap-4">
-        <Link href="/dashboard" className="text-amber-600 hover:text-amber-800">
+        <Link
+          href="/dashboard"
+          className="btn-retro-cream btn-retro px-4 py-1.5 text-sm"
+        >
           &larr; Back
         </Link>
-        <h1 className="text-xl font-bold text-amber-900">
-          {pair.partner_name}
-        </h1>
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🧇</span>
+          <h1 className="font-display text-xl font-bold text-syrup">
+            {pair.partner_name}
+          </h1>
+        </div>
       </div>
       <PairView pairId={pairId} currentUserId={user.id} />
     </main>

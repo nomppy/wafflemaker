@@ -24,19 +24,19 @@ export function InviteButton() {
 
   if (inviteUrl) {
     return (
-      <div className="rounded-xl bg-amber-100 p-4">
-        <p className="mb-2 text-sm font-medium text-amber-800">
+      <div className="card-cottage bg-waffle-texture p-5">
+        <p className="font-display mb-2 text-sm font-semibold text-syrup">
           Share this link with your friend:
         </p>
         <div className="flex items-center gap-2">
           <input
             readOnly
             value={inviteUrl}
-            className="flex-1 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
+            className="input-cottage flex-1 text-sm"
           />
           <button
             onClick={copyLink}
-            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+            className="btn-retro px-5 py-2.5 text-sm"
           >
             {copied ? "Copied!" : "Copy"}
           </button>
@@ -49,7 +49,7 @@ export function InviteButton() {
     <button
       onClick={createInvite}
       disabled={loading}
-      className="w-full rounded-xl bg-amber-600 py-3 font-semibold text-white transition hover:bg-amber-700 disabled:opacity-50"
+      className="btn-retro w-full py-3.5 text-base disabled:opacity-50"
     >
       {loading ? "Creating..." : "Invite a friend"}
     </button>
