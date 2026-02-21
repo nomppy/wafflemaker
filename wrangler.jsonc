@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "wafflemaker-db",
-      "database_id": "placeholder"
+      "database_id": "be2552df-7d3d-40c6-8bf9-5a5f25798988"
     }
   ],
   "r2_buckets": [

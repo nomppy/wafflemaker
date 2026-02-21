@@ -22,6 +22,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "pairId or circleId, and audio required" }, { status: 400 });
   }
 
+  const MAX_AUDIO_SIZE = 5 * 1024 * 1024; // 5MB
+  if (audio.size > MAX_AUDIO_SIZE) {
+    return NextResponse.json({ error: "Audio file too large (max 5MB)" }, { status: 413 });
+  }
+
   const db = getDb();
 
   if (pairId) {

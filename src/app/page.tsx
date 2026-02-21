@@ -201,7 +201,7 @@ export default function Home() {
           className="btn-retro px-10 py-4 text-lg"
         >
           <MicIcon className="inline-block w-5 text-syrup" />
-          Get Started
+          Start Waffling
         </Link>
       </div>
 
