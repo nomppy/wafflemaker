@@ -66,6 +66,8 @@ interface Waffle {
   word_timestamps: string; // JSON array of WordTimestamp
   title: string;
   tags: string; // JSON array of strings
+  reply_to_id: string | null;
+  reply_to_timestamp: number | null;
   reactions: Reaction[];
   created_at: string;
 }
@@ -135,6 +137,10 @@ export function PairView({
   const [editTitle, setEditTitle] = useState("");
   const [editTags, setEditTags] = useState("");
   const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<{
+    waffleId: string;
+    timestamp: number | null;
+  } | null>(null);
 
   useEffect(() => {
     setPrompt(getRandomPrompt());
@@ -304,10 +310,17 @@ export function PairView({
     if (wordTimestamps.length > 0) {
       formData.append("word_timestamps", JSON.stringify(wordTimestamps));
     }
+    if (replyTo) {
+      formData.append("reply_to_id", replyTo.waffleId);
+      if (replyTo.timestamp != null) {
+        formData.append("reply_to_timestamp", String(replyTo.timestamp));
+      }
+    }
 
     await fetch("/api/waffles", { method: "POST", body: formData });
     setUploading(false);
     setRecordingTime(0);
+    setReplyTo(null);
     setPrompt(getRandomPrompt());
     loadWaffles();
   }
@@ -487,6 +500,18 @@ export function PairView({
               key={w.id}
               className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
             >
+              {w.reply_to_id && (() => {
+                const parent = waffles.find((p) => p.id === w.reply_to_id);
+                if (!parent) return null;
+                return (
+                  <p className="mb-1 text-[10px] font-semibold text-waffle/60">
+                    Replying to {parent.sender_name}
+                    {w.reply_to_timestamp != null
+                      ? ` at ${formatTime(w.reply_to_timestamp)}`
+                      : ""}
+                  </p>
+                );
+              })()}
               <div className="flex items-center gap-1.5">
                 <div
                   className={`px-4 py-3 transition-all ${
@@ -614,6 +639,13 @@ export function PairView({
                   aria-label="Toggle transcript"
                 >
                   Aa
+                </button>
+                <button
+                  onClick={() => setReplyTo({ waffleId: w.id, timestamp: null })}
+                  className="rounded-lg border-2 border-waffle-light/50 bg-butter px-2 py-1 text-[10px] font-semibold text-waffle-dark transition-all hover:border-waffle hover:bg-butter-deep"
+                  aria-label="Reply to waffle"
+                >
+                  Reply
                 </button>
               </div>
               {isExpanded && (
@@ -748,6 +780,32 @@ export function PairView({
 
       {/* Record area - sticky at bottom */}
       <div className="sticky bottom-0 mt-auto flex flex-col items-center border-t-2 border-dashed border-waffle-light/40 bg-cream pb-6 pt-5 safe-b">
+        {/* Reply context */}
+        {replyTo && (() => {
+          const parent = waffles.find((w) => w.id === replyTo.waffleId);
+          if (!parent) return null;
+          return (
+            <div className="mb-3 flex w-full items-center gap-2 rounded-xl border-2 border-waffle-light/40 bg-butter px-3 py-2">
+              <div className="flex-1 text-xs">
+                <span className="font-semibold text-waffle-dark">
+                  Replying to {parent.sender_name}
+                </span>
+                {replyTo.timestamp != null && (
+                  <span className="text-waffle/60"> at {formatTime(replyTo.timestamp)}</span>
+                )}
+                {parent.title && (
+                  <span className="text-waffle/60"> &mdash; {parent.title}</span>
+                )}
+              </div>
+              <button
+                onClick={() => setReplyTo(null)}
+                className="text-xs font-bold text-waffle-dark/40 hover:text-waffle-dark"
+              >
+                &times;
+              </button>
+            </div>
+          );
+        })()}
         {uploading ? (
           <div className="flex items-center gap-3">
             <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-waffle border-t-transparent" />

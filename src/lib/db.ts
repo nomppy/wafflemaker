@@ -65,6 +65,8 @@ function migrate(db: Database.Database) {
       word_timestamps TEXT NOT NULL DEFAULT '',
       title TEXT NOT NULL DEFAULT '',
       tags TEXT NOT NULL DEFAULT '',
+      reply_to_id TEXT REFERENCES waffles(id),
+      reply_to_timestamp REAL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       expires_at TEXT NOT NULL
     );
@@ -89,5 +91,11 @@ function migrate(db: Database.Database) {
   }
   if (!cols.some((c) => c.name === "tags")) {
     db.exec("ALTER TABLE waffles ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
+  }
+  if (!cols.some((c) => c.name === "reply_to_id")) {
+    db.exec("ALTER TABLE waffles ADD COLUMN reply_to_id TEXT REFERENCES waffles(id)");
+  }
+  if (!cols.some((c) => c.name === "reply_to_timestamp")) {
+    db.exec("ALTER TABLE waffles ADD COLUMN reply_to_timestamp REAL");
   }
 }

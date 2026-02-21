@@ -29,7 +29,7 @@ export async function GET(
 
   const waffles = db
     .prepare(
-      `SELECT w.id, w.sender_id, w.duration_seconds, w.transcript, w.word_timestamps, w.title, w.tags, w.created_at,
+      `SELECT w.id, w.sender_id, w.duration_seconds, w.transcript, w.word_timestamps, w.title, w.tags, w.reply_to_id, w.reply_to_timestamp, w.created_at,
               u.display_name as sender_name
        FROM waffles w
        JOIN users u ON u.id = w.sender_id
