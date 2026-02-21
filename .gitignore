@@ -39,3 +39,7 @@ waffles.db-wal
 
 # cloudflare
 .wrangler/
+.open-next/
+.vercel/
+waffles.db
+test-results/
