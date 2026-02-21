@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { getDb } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 /* ===== Inline SVG Components ===== */
 
@@ -171,7 +174,21 @@ function KitchenWindowIcon({ className = "" }: { className?: string }) {
   );
 }
 
-export default function Home() {
+async function getAndIncrementVisits(): Promise<number> {
+  try {
+    const db = getDb();
+    await db.prepare("UPDATE visits SET count = count + 1 WHERE id = 1").run();
+    const row = await db
+      .prepare("SELECT count FROM visits WHERE id = 1")
+      .first<{ count: number }>();
+    return row?.count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export default async function Home() {
+  const visits = await getAndIncrementVisits();
   return (
     <main className="flex min-h-screen flex-col items-center overflow-x-hidden">
       {/* Hero */}
@@ -300,7 +317,7 @@ export default function Home() {
         </div>
         <div className="webring-footer mx-auto max-w-xs">
           <p className="mb-2">
-            You are visitor #<span className="counter-retro mx-1 inline-block text-xs">0042</span> to this waffle stand
+            You are visitor #<span className="counter-retro mx-1 inline-block text-xs">{String(visits).padStart(4, "0")}</span> to this waffle stand
           </p>
         </div>
         <p className="mt-4 text-xs text-waffle-dark/40">
