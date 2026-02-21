@@ -326,6 +326,9 @@ export function CircleView({
               <span className="relative z-10 block h-5 w-5 rounded-full bg-white shadow-sm" />
             </button>
             <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to record a waffle</p>
+            <p className="mt-2 text-[11px] text-waffle-dark/40">
+              Voice messages are kept for 7 days. Transcripts are saved forever.
+            </p>
           </>
         )}
       </div>

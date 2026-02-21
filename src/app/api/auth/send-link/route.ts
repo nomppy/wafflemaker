@@ -40,8 +40,13 @@ function buildMagicLinkEmail(magicUrl: string): string {
           </tr>
           <tr>
             <td style="padding:16px 32px;text-align:center;border-top:1px solid #f0e0c8;">
-              <p style="margin:0;font-size:12px;color:#b8a080;">
+              <p style="margin:0 0 8px;font-size:12px;color:#b8a080;">
                 Sent with warmth from Wafflemaker
+              </p>
+              <p style="margin:0;font-size:11px;color:#c8b090;">
+                <a href="mailto:feedback@sunken.site?subject=Wafflemaker%20Feedback" style="color:#c8913a;text-decoration:none;">Send feedback</a>
+                &nbsp;&middot;&nbsp;
+                <a href="https://github.com/nomppy/wafflemaker" style="color:#c8913a;text-decoration:none;">GitHub</a>
               </p>
             </td>
           </tr>
@@ -67,7 +72,7 @@ async function sendEmailViaResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Wafflemaker <onboarding@resend.dev>",
+        from: "Wafflemaker <noreply@sunken.site>",
         to,
         subject,
         html,

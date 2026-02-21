@@ -6,6 +6,7 @@ import { InviteButton } from "./invite-button";
 import { CreateCircleButton } from "./create-circle-button";
 import { LogoutButton } from "./logout-button";
 import { getStreak } from "@/lib/streaks";
+import { EditName } from "./edit-name";
 
 interface Pair {
   id: string;
@@ -96,7 +97,7 @@ export default async function DashboardPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-syrup">Your Waffles</h1>
-          <p className="mt-0.5 text-sm font-medium text-waffle-dark/70">Hey, {user.display_name}</p>
+          <EditName currentName={user.display_name} />
         </div>
         <LogoutButton />
       </div>

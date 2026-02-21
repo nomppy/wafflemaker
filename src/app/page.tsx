@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getDb } from "@/lib/db";
+import { VisitCookie } from "./visit-cookie";
 
 export const dynamic = "force-dynamic";
 
@@ -174,10 +176,12 @@ function KitchenWindowIcon({ className = "" }: { className?: string }) {
   );
 }
 
-async function getAndIncrementVisits(): Promise<number> {
+async function getVisits(shouldIncrement: boolean): Promise<number> {
   try {
     const db = getDb();
-    await db.prepare("UPDATE visits SET count = count + 1 WHERE id = 1").run();
+    if (shouldIncrement) {
+      await db.prepare("UPDATE visits SET count = count + 1 WHERE id = 1").run();
+    }
     const row = await db
       .prepare("SELECT count FROM visits WHERE id = 1")
       .first<{ count: number }>();
@@ -188,9 +192,12 @@ async function getAndIncrementVisits(): Promise<number> {
 }
 
 export default async function Home() {
-  const visits = await getAndIncrementVisits();
+  const cookieStore = await cookies();
+  const alreadyVisited = cookieStore.get("visited")?.value === "1";
+  const visits = await getVisits(!alreadyVisited);
   return (
     <main className="flex min-h-screen flex-col items-center overflow-x-hidden">
+      {!alreadyVisited && <VisitCookie />}
       {/* Hero */}
       <div className="relative w-full px-6 pb-14 pt-16 text-center md:pt-24">
         {/* Floating decorations */}
