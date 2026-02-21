@@ -41,12 +41,9 @@ export default async function PairPage({
         >
           &larr; Back
         </Link>
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🧇</span>
-          <h1 className="font-display text-xl font-bold text-syrup">
-            {pair.partner_name}
-          </h1>
-        </div>
+        <h1 className="font-display text-xl font-bold text-syrup">
+          {pair.partner_name}
+        </h1>
       </div>
       <PairView pairId={pairId} currentUserId={user.id} />
     </main>

@@ -60,7 +60,6 @@ function LoginForm() {
   if (sent) {
     return (
       <div className="card-cottage bg-waffle-texture p-8 text-center">
-        <div className="mx-auto mb-4 text-5xl">✉️</div>
         <h2 className="font-display mb-2 text-2xl font-bold text-syrup">Check your email</h2>
         <p className="leading-relaxed text-waffle-dark">
           We sent a login link to <strong className="text-syrup">{email}</strong>

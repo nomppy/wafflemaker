@@ -70,7 +70,7 @@ export default async function DashboardPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-syrup">Your Waffles</h1>
-          <p className="mt-0.5 text-sm font-medium text-waffle-dark/70">Hey, {user.display_name} 👋</p>
+          <p className="mt-0.5 text-sm font-medium text-waffle-dark/70">Hey, {user.display_name}</p>
         </div>
         <LogoutButton />
       </div>
@@ -117,18 +117,13 @@ export default async function DashboardPage() {
               className="card-cottage block p-5 transition-all"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-butter text-lg shadow-sm">
-                    🧇
-                  </div>
-                  <div>
-                    <p className="font-display font-semibold text-syrup">{pair.partner_name}</p>
-                    <p className="text-sm text-waffle-dark/60">{pair.partner_email}</p>
-                  </div>
+                <div>
+                  <p className="font-display font-semibold text-syrup">{pair.partner_name}</p>
+                  <p className="text-sm text-waffle-dark/60">{pair.partner_email}</p>
                 </div>
                 {pair.streak > 0 && (
                   <span className="counter-retro">
-                    🧇 {String(pair.streak).padStart(3, "0")}
+                    {String(pair.streak).padStart(3, "0")}
                   </span>
                 )}
               </div>
