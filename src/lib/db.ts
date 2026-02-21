@@ -1,8 +1,14 @@
 import Database from "better-sqlite3";
 import path from "path";
 
+// Bump this when adding new migrations so HMR-cached connections get updated
+const MIGRATION_VERSION = 6;
+
 // Use globalThis to survive Turbopack HMR/module reloads
-const globalDb = globalThis as unknown as { __waffleDb?: Database.Database };
+const globalDb = globalThis as unknown as {
+  __waffleDb?: Database.Database;
+  __waffleMigVer?: number;
+};
 
 export function getDb(): Database.Database {
   if (!globalDb.__waffleDb) {
@@ -13,6 +19,10 @@ export function getDb(): Database.Database {
     db.pragma("foreign_keys = ON");
     migrate(db);
     globalDb.__waffleDb = db;
+    globalDb.__waffleMigVer = MIGRATION_VERSION;
+  } else if ((globalDb.__waffleMigVer || 0) < MIGRATION_VERSION) {
+    migrate(globalDb.__waffleDb);
+    globalDb.__waffleMigVer = MIGRATION_VERSION;
   }
   return globalDb.__waffleDb;
 }
@@ -47,17 +57,33 @@ function migrate(db: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS circles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS circle_members (
+      circle_id TEXT NOT NULL REFERENCES circles(id),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (circle_id, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS invites (
       id TEXT PRIMARY KEY,
       from_user_id TEXT NOT NULL REFERENCES users(id),
       code TEXT UNIQUE NOT NULL,
       accepted_by_user_id TEXT REFERENCES users(id),
+      circle_id TEXT REFERENCES circles(id),
       expires_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS waffles (
       id TEXT PRIMARY KEY,
-      pair_id TEXT NOT NULL REFERENCES pairs(id),
+      pair_id TEXT REFERENCES pairs(id),
+      circle_id TEXT REFERENCES circles(id),
       sender_id TEXT NOT NULL REFERENCES users(id),
       storage_key TEXT NOT NULL,
       duration_seconds INTEGER NOT NULL DEFAULT 0,
@@ -81,6 +107,22 @@ function migrate(db: Database.Database) {
     );
   `);
 
+  // Ensure circles tables exist (for existing DBs opened before circles feature)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS circles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS circle_members (
+      circle_id TEXT NOT NULL REFERENCES circles(id),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (circle_id, user_id)
+    );
+  `);
+
   // Migrations for existing DBs
   const cols = db.prepare("PRAGMA table_info(waffles)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "word_timestamps")) {
@@ -97,5 +139,14 @@ function migrate(db: Database.Database) {
   }
   if (!cols.some((c) => c.name === "reply_to_timestamp")) {
     db.exec("ALTER TABLE waffles ADD COLUMN reply_to_timestamp REAL");
+  }
+  if (!cols.some((c) => c.name === "circle_id")) {
+    db.exec("ALTER TABLE waffles ADD COLUMN circle_id TEXT REFERENCES circles(id)");
+  }
+
+  // Migration: add circle_id to invites
+  const inviteCols = db.prepare("PRAGMA table_info(invites)").all() as { name: string }[];
+  if (!inviteCols.some((c) => c.name === "circle_id")) {
+    db.exec("ALTER TABLE invites ADD COLUMN circle_id TEXT REFERENCES circles(id)");
   }
 }

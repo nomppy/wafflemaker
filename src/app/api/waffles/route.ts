@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
   }
 
   const formData = await req.formData();
-  const pairId = formData.get("pairId") as string;
+  const pairId = (formData.get("pairId") as string) || null;
+  const circleId = (formData.get("circleId") as string) || null;
   const audio = formData.get("audio") as File;
   const duration = parseInt(formData.get("duration") as string) || 0;
   const transcript = (formData.get("transcript") as string) || "";
@@ -22,21 +23,32 @@ export async function POST(req: NextRequest) {
     ? parseFloat(formData.get("reply_to_timestamp") as string)
     : null;
 
-  if (!pairId || !audio) {
-    return NextResponse.json({ error: "pairId and audio required" }, { status: 400 });
+  if ((!pairId && !circleId) || !audio) {
+    return NextResponse.json({ error: "pairId or circleId, and audio required" }, { status: 400 });
   }
 
   const db = getDb();
 
-  // Verify user is in this pair
-  const pair = db
-    .prepare(
-      "SELECT id FROM pairs WHERE id = ? AND (user_a_id = ? OR user_b_id = ?)"
-    )
-    .get(pairId, user.id, user.id);
+  if (pairId) {
+    // Verify user is in this pair
+    const pair = db
+      .prepare(
+        "SELECT id FROM pairs WHERE id = ? AND (user_a_id = ? OR user_b_id = ?)"
+      )
+      .get(pairId, user.id, user.id);
+    if (!pair) {
+      return NextResponse.json({ error: "Pair not found" }, { status: 404 });
+    }
+  }
 
-  if (!pair) {
-    return NextResponse.json({ error: "Pair not found" }, { status: 404 });
+  if (circleId) {
+    // Verify user is in this circle
+    const member = db
+      .prepare("SELECT circle_id FROM circle_members WHERE circle_id = ? AND user_id = ?")
+      .get(circleId, user.id);
+    if (!member) {
+      return NextResponse.json({ error: "Circle not found" }, { status: 404 });
+    }
   }
 
   const id = generateId();
@@ -47,8 +59,8 @@ export async function POST(req: NextRequest) {
   saveAudio(storageKey, buffer);
 
   db.prepare(
-    "INSERT INTO waffles (id, pair_id, sender_id, storage_key, duration_seconds, transcript, word_timestamps, reply_to_id, reply_to_timestamp, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, pairId, user.id, storageKey, duration, transcript, wordTimestamps, replyToId, replyToTimestamp, expiresAt);
+    "INSERT INTO waffles (id, pair_id, circle_id, sender_id, storage_key, duration_seconds, transcript, word_timestamps, reply_to_id, reply_to_timestamp, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run(id, pairId, circleId, user.id, storageKey, duration, transcript, wordTimestamps, replyToId, replyToTimestamp, expiresAt);
 
   return NextResponse.json({ id, ok: true });
 }

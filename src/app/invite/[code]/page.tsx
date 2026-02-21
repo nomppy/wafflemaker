@@ -19,12 +19,13 @@ export default async function InvitePage({
   const db = getDb();
   const invite = db
     .prepare(
-      "SELECT id, from_user_id, accepted_by_user_id, expires_at FROM invites WHERE code = ?"
+      "SELECT id, from_user_id, accepted_by_user_id, circle_id, expires_at FROM invites WHERE code = ?"
     )
     .get(code) as {
     id: string;
     from_user_id: string;
     accepted_by_user_id: string | null;
+    circle_id: string | null;
     expires_at: string;
   } | undefined;
 
@@ -52,6 +53,24 @@ export default async function InvitePage({
     );
   }
 
+  // Circle invite flow
+  if (invite.circle_id) {
+    // Check if already a member
+    const existing = db
+      .prepare("SELECT circle_id FROM circle_members WHERE circle_id = ? AND user_id = ?")
+      .get(invite.circle_id, user.id);
+
+    if (!existing) {
+      db.prepare("INSERT INTO circle_members (circle_id, user_id) VALUES (?, ?)").run(
+        invite.circle_id,
+        user.id
+      );
+    }
+
+    redirect("/dashboard");
+  }
+
+  // Pair invite flow
   if (invite.accepted_by_user_id) {
     redirect("/dashboard");
   }

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { InviteButton } from "./invite-button";
+import { CreateCircleButton } from "./create-circle-button";
 import { LogoutButton } from "./logout-button";
 import { getStreak } from "@/lib/streaks";
 
@@ -13,6 +14,12 @@ interface Pair {
   partner_name: string;
   partner_email: string;
   streak: number;
+}
+
+interface Circle {
+  id: string;
+  name: string;
+  member_count: number;
 }
 
 function getUserPairs(userId: string): Pair[] {
@@ -28,6 +35,19 @@ function getUserPairs(userId: string): Pair[] {
        WHERE p.user_a_id = ? OR p.user_b_id = ?`
     )
     .all(userId, userId, userId, userId) as Pair[];
+}
+
+function getUserCircles(userId: string): Circle[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT c.id, c.name,
+              (SELECT COUNT(*) FROM circle_members WHERE circle_id = c.id) as member_count
+       FROM circles c
+       JOIN circle_members cm ON cm.circle_id = c.id
+       WHERE cm.user_id = ?`
+    )
+    .all(userId) as Circle[];
 }
 
 function EmptyPlateIcon() {
@@ -64,6 +84,7 @@ export default async function DashboardPage() {
     ...p,
     streak: getStreak(p.id, user.id),
   }));
+  const circles = getUserCircles(user.id);
 
   return (
     <main className="mx-auto max-w-lg p-6">
@@ -76,8 +97,32 @@ export default async function DashboardPage() {
       </div>
 
       <InviteButton />
+      <CreateCircleButton />
 
-      {pairs.length === 0 ? (
+      {/* Circles section */}
+      {circles.length > 0 && (
+        <div className="mt-6 space-y-3">
+          <h2 className="font-display text-lg font-bold text-syrup">Circles</h2>
+          {circles.map((circle) => (
+            <Link
+              key={circle.id}
+              href={`/circle/${circle.id}`}
+              className="card-cottage block p-5 transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-display font-semibold text-syrup">{circle.name}</p>
+                  <p className="text-sm text-waffle-dark/60">
+                    {circle.member_count} member{circle.member_count !== 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+    {pairs.length === 0 && circles.length === 0 ? (
         <div className="mt-8 space-y-4">
           <div className="card-cottage bg-waffle-texture p-7 text-center">
             <EmptyPlateIcon />
