@@ -3,6 +3,9 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2024-12-01",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [
+    { "pattern": "waffle.sunken.site", "custom_domain": true }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -19,5 +22,8 @@
       "binding": "AUDIO_BUCKET",
       "bucket_name": "wafflemaker-audio"
     }
-  ]
+  ],
+  "vars": {
+    "NEXT_PUBLIC_URL": "https://waffle.sunken.site"
+  }
 }
