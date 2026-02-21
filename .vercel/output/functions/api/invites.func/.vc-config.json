@@ -1,0 +1,18 @@
+{
+  "runtime": "edge",
+  "name": "api/invites",
+  "deploymentTarget": "v8-worker",
+  "entrypoint": "index.js",
+  "assets": [],
+  "framework": {
+    "slug": "nextjs",
+    "version": "16.1.6"
+  },
+  "environment": {
+    "__NEXT_BUILD_ID": "mPAhC02JBImXMLQBtW1H-",
+    "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "LMpKSw3CdxVGDUfBZEZE5plYd1Cn875CgaSpuZjF6+Q=",
+    "__NEXT_PREVIEW_MODE_ID": "c123bef6d2b50a5e93bbe81ced34a814",
+    "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "36afff19c1f3b01d41b62b5dca3da2fb76cd29f84edb5fe972689e2ec20e09eb",
+    "__NEXT_PREVIEW_MODE_SIGNING_KEY": "e0779be63319d3c584d8c27bd1403d89264f586605b76f84e0f525ac0c2d9bbf"
+  }
+}

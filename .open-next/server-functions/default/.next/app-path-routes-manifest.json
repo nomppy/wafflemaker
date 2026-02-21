@@ -1,0 +1,22 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/auth/logout/route": "/api/auth/logout",
+  "/api/auth/me/route": "/api/auth/me",
+  "/api/auth/send-link/route": "/api/auth/send-link",
+  "/api/auth/verify/route": "/api/auth/verify",
+  "/api/circles/[circleId]/route": "/api/circles/[circleId]",
+  "/api/circles/invite/route": "/api/circles/invite",
+  "/api/circles/route": "/api/circles",
+  "/api/invites/route": "/api/invites",
+  "/api/waffles/[pairId]/route": "/api/waffles/[pairId]",
+  "/api/waffles/audio/[id]/route": "/api/waffles/audio/[id]",
+  "/api/waffles/comments/[waffleId]/route": "/api/waffles/comments/[waffleId]",
+  "/api/waffles/route": "/api/waffles",
+  "/circle/[id]/page": "/circle/[id]",
+  "/dashboard/page": "/dashboard",
+  "/invite/[code]/page": "/invite/[code]",
+  "/login/page": "/login",
+  "/page": "/",
+  "/pair/[id]/page": "/pair/[id]"
+}
