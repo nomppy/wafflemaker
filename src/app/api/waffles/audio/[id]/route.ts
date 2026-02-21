@@ -19,12 +19,15 @@ export async function GET(
 
   const waffle = db
     .prepare(
-      `SELECT w.storage_key, w.pair_id
+      `SELECT w.storage_key
        FROM waffles w
-       JOIN pairs p ON p.id = w.pair_id
-       WHERE w.id = ? AND (p.user_a_id = ? OR p.user_b_id = ?)`
+       LEFT JOIN pairs p ON p.id = w.pair_id
+       LEFT JOIN circle_members cm ON cm.circle_id = w.circle_id AND cm.user_id = ?
+       WHERE w.id = ? AND (
+         (p.user_a_id = ? OR p.user_b_id = ?) OR cm.user_id IS NOT NULL
+       )`
     )
-    .get(id, user.id, user.id) as { storage_key: string; pair_id: string } | undefined;
+    .get(user.id, id, user.id, user.id) as { storage_key: string } | undefined;
 
   if (!waffle) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

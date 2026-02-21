@@ -296,6 +296,38 @@ test.describe("Wafflemaker E2E", () => {
     expect(errors).toHaveLength(0);
   });
 
+  test("seeded waffles play audio and show comments", async ({ page }) => {
+    // Login as seed-alice
+    await loginAs(page, "seed-alice@test.com");
+
+    // Find the pair link for Bob on the dashboard
+    const bobLink = page.getByRole("link", { name: "Bob" });
+    await expect(bobLink).toBeVisible({ timeout: 5000 });
+    await bobLink.click();
+    await page.waitForURL("**/pair/**");
+
+    // Verify waffles appear
+    await expect(page.getByText("Weekly catchup")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText("Coffee and sports")).toBeVisible();
+
+    // Click on a waffle to expand it
+    await page.getByText("Weekly catchup").click();
+
+    // Expanded detail view should show audio player and comments
+    await expect(page.getByText("Ooh which coffee place?")).toBeVisible({ timeout: 3000 });
+
+    // Click play and verify audio route returns 200 (no 404)
+    const [audioResponse] = await Promise.all([
+      page.waitForResponse((resp) =>
+        resp.url().includes("/api/waffles/audio/") && resp.status() === 200
+      ),
+      page.locator("button").filter({ hasText: "▶" }).first().click(),
+    ]);
+
+    expect(audioResponse.status()).toBe(200);
+    expect(audioResponse.headers()["content-type"]).toBe("audio/webm");
+  });
+
   test("no console errors on pair page with waffles", async ({ browser }) => {
     const { alicePage, bobPage, pairUrl, cleanup } = await createPair(
       browser,
