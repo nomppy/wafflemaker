@@ -109,39 +109,51 @@ export function PairView({
       setRecording(true);
       setRecordingTime(0);
 
+      timerRef.current = setInterval(() => {
+        setRecordingTime((t) => t + 1);
+      }, 1000);
+
       // Start speech recognition for transcription
       transcriptRef.current = "";
       const SpeechRecognitionAPI =
         window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognitionAPI) {
-        const recognition = new SpeechRecognitionAPI();
-        recognition.continuous = true;
-        recognition.interimResults = false;
-        recognition.lang = "en-US";
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
-              transcriptRef.current += event.results[i][0].transcript;
+        try {
+          const recognition = new SpeechRecognitionAPI();
+          recognition.continuous = true;
+          recognition.interimResults = false;
+          recognition.lang = "en-US";
+          let aborted = false;
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              if (event.results[i].isFinal) {
+                transcriptRef.current += event.results[i][0].transcript;
+              }
             }
-          }
-        };
-        recognition.onend = () => {
-          // Recognition auto-stops periodically; restart if still recording
-          if (mediaRecorder.current?.state === "recording") {
-            try {
-              recognition.start();
-            } catch {
-              // already started or stopped
+          };
+          recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            // "no-speech" is normal; other errors mean we should stop trying
+            if (event.error !== "no-speech") {
+              aborted = true;
             }
-          }
-        };
-        recognition.start();
-        recognitionRef.current = recognition;
+          };
+          recognition.onend = () => {
+            if (aborted) return;
+            // Recognition auto-stops periodically; restart if still recording
+            if (mediaRecorder.current?.state === "recording") {
+              try {
+                recognition.start();
+              } catch {
+                // already started or stopped
+              }
+            }
+          };
+          recognition.start();
+          recognitionRef.current = recognition;
+        } catch {
+          // SpeechRecognition not functional — continue without transcript
+        }
       }
-
-      timerRef.current = setInterval(() => {
-        setRecordingTime((t) => t + 1);
-      }, 1000);
     } catch (err) {
       const name = err instanceof DOMException ? err.name : "";
       if (name === "NotAllowedError") {
