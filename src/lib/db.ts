@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import path from "path";
 
 // Bump this when adding new migrations so HMR-cached connections get updated
-const MIGRATION_VERSION = 6;
+const MIGRATION_VERSION = 7;
 
 // Use globalThis to survive Turbopack HMR/module reloads
 const globalDb = globalThis as unknown as {
@@ -97,11 +97,11 @@ function migrate(db: Database.Database) {
       expires_at TEXT NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS reactions (
+    CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY,
       waffle_id TEXT NOT NULL REFERENCES waffles(id),
       user_id TEXT NOT NULL REFERENCES users(id),
-      emoji TEXT NOT NULL,
+      text TEXT NOT NULL DEFAULT '',
       timestamp_seconds REAL NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -143,6 +143,18 @@ function migrate(db: Database.Database) {
   if (!cols.some((c) => c.name === "circle_id")) {
     db.exec("ALTER TABLE waffles ADD COLUMN circle_id TEXT REFERENCES circles(id)");
   }
+
+  // Migration: create comments table (replaces old reactions table)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      waffle_id TEXT NOT NULL REFERENCES waffles(id),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      text TEXT NOT NULL DEFAULT '',
+      timestamp_seconds REAL NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
 
   // Migration: add circle_id to invites
   const inviteCols = db.prepare("PRAGMA table_info(invites)").all() as { name: string }[];

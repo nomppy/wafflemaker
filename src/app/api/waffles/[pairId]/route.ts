@@ -29,7 +29,7 @@ export async function GET(
 
   const waffles = db
     .prepare(
-      `SELECT w.id, w.sender_id, w.duration_seconds, w.transcript, w.word_timestamps, w.title, w.tags, w.reply_to_id, w.reply_to_timestamp, w.created_at,
+      `SELECT w.id, w.sender_id, w.duration_seconds, w.transcript, w.word_timestamps, w.title, w.tags, w.created_at,
               u.display_name as sender_name
        FROM waffles w
        JOIN users u ON u.id = w.sender_id
@@ -39,20 +39,20 @@ export async function GET(
     )
     .all(pairId) as Record<string, unknown>[];
 
-  // Attach reactions to each waffle
-  const getReactions = db.prepare(
-    `SELECT r.id, r.user_id, r.emoji, r.timestamp_seconds, r.created_at,
+  // Attach comments to each waffle
+  const getComments = db.prepare(
+    `SELECT c.id, c.user_id, c.text, c.timestamp_seconds, c.created_at,
             u.display_name as user_name
-     FROM reactions r
-     JOIN users u ON u.id = r.user_id
-     WHERE r.waffle_id = ?
-     ORDER BY r.timestamp_seconds ASC`
+     FROM comments c
+     JOIN users u ON u.id = c.user_id
+     WHERE c.waffle_id = ?
+     ORDER BY c.timestamp_seconds ASC`
   );
 
-  const wafflesWithReactions = waffles.map((w) => ({
+  const wafflesWithComments = waffles.map((w) => ({
     ...w,
-    reactions: getReactions.all(w.id as string),
+    comments: getComments.all(w.id as string),
   }));
 
-  return NextResponse.json(wafflesWithReactions);
+  return NextResponse.json(wafflesWithComments);
 }

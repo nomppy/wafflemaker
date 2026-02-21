@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-interface Reaction {
+interface Comment {
   id: string;
   user_id: string;
   user_name: string;
-  emoji: string;
+  text: string;
   timestamp_seconds: number;
 }
 
@@ -16,7 +16,8 @@ interface Waffle {
   sender_name: string;
   duration_seconds: number;
   transcript: string;
-  reactions: Reaction[];
+  title: string;
+  comments: Comment[];
   created_at: string;
 }
 
@@ -25,8 +26,6 @@ interface Member {
   display_name: string;
   email: string;
 }
-
-const QUICK_EMOJIS = ["❤️", "😂", "🔥", "👏", "😮"];
 
 export function CircleView({
   circleId,
@@ -47,6 +46,7 @@ export function CircleView({
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -64,14 +64,9 @@ export function CircleView({
     }
   }, [circleId]);
 
+  useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [waffles]);
 
   async function startRecording() {
@@ -80,20 +75,14 @@ export function CircleView({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       chunks.current = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.current.push(e.data);
-      };
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.current.push(e.data); };
       mediaRecorder.current = recorder;
       recorder.start();
       setRecording(true);
       setRecordingTime(0);
       transcriptRef.current = "";
-      timerRef.current = setInterval(() => {
-        setRecordingTime((t) => t + 1);
-      }, 1000);
-    } catch {
-      setMicError("Could not access your microphone.");
-    }
+      timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch { setMicError("Could not access your microphone."); }
   }
 
   async function stopRecording() {
@@ -103,7 +92,16 @@ export function CircleView({
       mediaRecorder.current.onstop = async () => {
         mediaRecorder.current!.stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks.current, { type: "audio/webm" });
-        await uploadWaffle(blob, duration, transcript);
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("circleId", circleId);
+        formData.append("audio", blob, "waffle.webm");
+        formData.append("duration", String(duration));
+        formData.append("transcript", transcript);
+        await fetch("/api/waffles", { method: "POST", body: formData });
+        setUploading(false);
+        setRecordingTime(0);
+        loadData();
       };
       mediaRecorder.current.stop();
     }
@@ -111,34 +109,13 @@ export function CircleView({
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
-  async function uploadWaffle(blob: Blob, duration: number, transcript: string) {
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("circleId", circleId);
-    formData.append("audio", blob, "waffle.webm");
-    formData.append("duration", String(duration));
-    formData.append("transcript", transcript);
-    await fetch("/api/waffles", { method: "POST", body: formData });
-    setUploading(false);
-    setRecordingTime(0);
-    loadData();
-  }
-
   function stopPlayback() {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    setPlayingId(null);
-    setPlaybackTime(0);
-    setPlaybackDuration(0);
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    setPlayingId(null); setPlaybackTime(0); setPlaybackDuration(0);
   }
 
   function playWaffle(id: string) {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     if (playingId === id) { stopPlayback(); return; }
     const audio = new Audio(`/api/waffles/audio/${id}`);
     audio.onended = () => stopPlayback();
@@ -147,8 +124,7 @@ export function CircleView({
     audio.onloadedmetadata = () => setPlaybackDuration(audio.duration);
     audio.play().catch(() => stopPlayback());
     audioRef.current = audio;
-    setPlayingId(id);
-    setPlaybackTime(0);
+    setPlayingId(id); setPlaybackTime(0);
   }
 
   function seekAudio(fraction: number) {
@@ -158,16 +134,28 @@ export function CircleView({
     }
   }
 
+  function seekToTime(seconds: number) {
+    if (audioRef.current) { audioRef.current.currentTime = seconds; setPlaybackTime(seconds); }
+  }
+
+  async function addComment(waffleId: string) {
+    if (!commentText.trim()) return;
+    await fetch(`/api/waffles/comments/${waffleId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: commentText.trim(), timestampSeconds: playingId === waffleId ? playbackTime : 0 }),
+    });
+    setCommentText("");
+    loadData();
+  }
+
   async function createInvite() {
     const res = await fetch("/api/circles/invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ circleId }),
     });
-    if (res.ok) {
-      const data = await res.json();
-      setInviteUrl(data.url);
-    }
+    if (res.ok) { const data = await res.json(); setInviteUrl(data.url); }
   }
 
   async function copyLink() {
@@ -179,19 +167,12 @@ export function CircleView({
 
   function formatTime(seconds: number) {
     const total = Math.floor(seconds);
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
+    return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
   }
 
   function formatDate(iso: string) {
-    const d = new Date(iso + "Z");
-    return d.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
+    return new Date(iso + "Z").toLocaleDateString("en-US", {
+      weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
     });
   }
 
@@ -201,133 +182,115 @@ export function CircleView({
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-waffle-dark/60">Members:</span>
         {members.map((m) => (
-          <span
-            key={m.id}
-            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-              m.id === currentUserId
-                ? "bg-waffle text-white"
-                : "bg-butter text-waffle-dark"
-            }`}
-          >
-            {m.display_name}
-          </span>
+          <span key={m.id} className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+            m.id === currentUserId ? "bg-waffle text-white" : "bg-butter text-waffle-dark"
+          }`}>{m.display_name}</span>
         ))}
         {inviteUrl ? (
-          <button
-            onClick={copyLink}
-            className="rounded-full bg-butter-deep px-2 py-0.5 text-xs font-semibold text-syrup hover:bg-waffle-light/40"
-          >
+          <button onClick={copyLink} className="rounded-full bg-butter-deep px-2 py-0.5 text-xs font-semibold text-syrup">
             {copied ? "Copied!" : "Copy invite link"}
           </button>
         ) : (
-          <button
-            onClick={createInvite}
-            className="rounded-full bg-butter-deep px-2 py-0.5 text-xs font-semibold text-syrup hover:bg-waffle-light/40"
-          >
+          <button onClick={createInvite} className="rounded-full bg-butter-deep px-2 py-0.5 text-xs font-semibold text-syrup">
             + Invite
           </button>
         )}
       </div>
 
       {/* Waffles list */}
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto pb-4">
+      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pb-4">
         {waffles.length === 0 && !recording && (
           <div className="card-cottage bg-waffle-texture p-7 text-center">
-            <p className="font-display mb-2 text-lg font-semibold text-syrup">
-              No waffles yet!
-            </p>
-            <p className="text-sm leading-relaxed text-waffle-dark/80">
-              Record the first waffle for this circle below.
-            </p>
+            <p className="font-display mb-2 text-lg font-semibold text-syrup">No waffles yet!</p>
+            <p className="text-sm leading-relaxed text-waffle-dark/80">Record the first waffle below.</p>
           </div>
         )}
         {waffles.map((w) => {
           const isMine = w.sender_id === currentUserId;
-          const isPlaying = playingId === w.id;
           const isExpanded = expandedId === w.id;
-          const progress = isPlaying && playbackDuration > 0
-            ? playbackTime / playbackDuration : 0;
+          const isPlaying = playingId === w.id;
+          const progress = isPlaying && playbackDuration > 0 ? playbackTime / playbackDuration : 0;
           return (
-            <div
-              key={w.id}
-              className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
-            >
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={`px-4 py-3 transition-all ${
-                    isMine ? "bubble-mine" : "bubble-theirs"
-                  } ${isPlaying ? "ring-2 ring-waffle-light ring-offset-2" : ""}`}
-                >
-                  <button
-                    onClick={() => playWaffle(w.id)}
-                    className="flex w-full items-center gap-2"
-                  >
-                    <span className="text-lg">{isPlaying ? "⏸" : "▶"}</span>
-                    <span className="font-display text-sm font-semibold">
-                      {isPlaying
-                        ? `${formatTime(playbackTime)} / ${formatTime(playbackDuration || w.duration_seconds)}`
-                        : formatTime(w.duration_seconds)}
+            <div key={w.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+              <div
+                onClick={() => { setExpandedId(isExpanded ? null : w.id); setCommentText(""); }}
+                className={`max-w-[320px] cursor-pointer px-4 py-3 transition-all ${
+                  isMine ? "bubble-mine" : "bubble-theirs"
+                } ${isExpanded ? "ring-2 ring-waffle-light ring-offset-2" : ""}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{isPlaying ? "⏸" : "▶"}</span>
+                  <span className="font-display text-sm font-semibold">{formatTime(w.duration_seconds)}</span>
+                  {w.comments.length > 0 && (
+                    <span className="rounded-full bg-waffle-light/30 px-1.5 py-0.5 text-[10px] font-semibold text-waffle-dark/70">
+                      {w.comments.length} comment{w.comments.length !== 1 ? "s" : ""}
                     </span>
-                  </button>
-                  {isPlaying && (
-                    <div
-                      className="mt-2 h-1.5 cursor-pointer rounded-full bg-waffle-light/30"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        seekAudio((e.clientX - rect.left) / rect.width);
-                      }}
+                  )}
+                </div>
+                {w.title && <p className="mt-1 text-xs font-medium opacity-80">{w.title}</p>}
+                <p className="mt-1 text-xs font-semibold opacity-80">{w.sender_name}</p>
+                <p className="text-xs opacity-60">{formatDate(w.created_at)}</p>
+              </div>
+
+              {isExpanded && (
+                <div className={`mt-2 w-full max-w-[340px] rounded-xl border-2 border-dashed p-4 ${
+                  isMine ? "border-waffle-light/50 bg-butter" : "border-waffle-light/30 bg-cream"
+                }`}>
+                  <div className="mb-3 flex items-center gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); playWaffle(w.id); }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-waffle text-white"
                     >
+                      <span className="text-sm">{isPlaying ? "⏸" : "▶"}</span>
+                    </button>
+                    <div className="flex-1">
                       <div
-                        className="h-full rounded-full bg-waffle transition-[width] duration-100"
-                        style={{ width: `${progress * 100}%` }}
-                      />
+                        className="h-2 cursor-pointer rounded-full bg-waffle-light/30"
+                        onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); seekAudio((e.clientX - r.left) / r.width); }}
+                      >
+                        <div className="h-full rounded-full bg-waffle transition-[width] duration-100" style={{ width: `${progress * 100}%` }} />
+                      </div>
+                      <div className="mt-0.5 flex justify-between text-[10px] text-waffle-dark/50">
+                        <span>{isPlaying ? formatTime(playbackTime) : "0:00"}</span>
+                        <span>{formatTime(isPlaying && playbackDuration ? playbackDuration : w.duration_seconds)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {w.transcript && (
+                    <div className="mb-3 rounded-lg bg-white/40 p-2 text-xs leading-relaxed text-waffle-dark/80">
+                      {w.transcript}
                     </div>
                   )}
-                  {!isPlaying && w.reactions.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {Object.entries(
-                        w.reactions.reduce<Record<string, number>>((acc, r) => {
-                          acc[r.emoji] = (acc[r.emoji] || 0) + 1;
-                          return acc;
-                        }, {})
-                      ).map(([emoji, count]) => (
-                        <span
-                          key={emoji}
-                          className="rounded-full border border-waffle-light/40 bg-butter px-1.5 py-0.5 text-xs"
+
+                  {w.comments.length > 0 && (
+                    <div className="mb-3 space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-waffle-dark/40">Comments</p>
+                      {w.comments.map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={(e) => { e.stopPropagation(); if (!isPlaying) playWaffle(w.id); if (isPlaying) seekToTime(c.timestamp_seconds); else setTimeout(() => seekToTime(c.timestamp_seconds), 300); }}
+                          className="flex cursor-pointer gap-2 rounded-lg bg-white/30 px-2 py-1.5 text-xs hover:bg-white/50"
                         >
-                          {emoji}{count > 1 ? ` ${count}` : ""}
-                        </span>
+                          <span className="shrink-0 font-mono text-[10px] text-waffle/60">{formatTime(c.timestamp_seconds)}</span>
+                          <span className="text-waffle-dark/80"><span className="font-semibold">{c.user_name}:</span> {c.text}</span>
+                        </div>
                       ))}
                     </div>
                   )}
-                  <p className="mt-1 text-xs font-semibold opacity-80">
-                    {w.sender_name}
-                  </p>
-                  <p className="text-xs opacity-60">{formatDate(w.created_at)}</p>
-                </div>
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : w.id)}
-                  className={`rounded-lg border-2 px-2.5 py-1 text-xs font-semibold transition-all ${
-                    isExpanded
-                      ? "border-waffle bg-butter-deep text-syrup"
-                      : "border-waffle-light/50 bg-butter text-waffle-dark hover:border-waffle hover:bg-butter-deep"
-                  }`}
-                  aria-label="Toggle transcript"
-                >
-                  Aa
-                </button>
-              </div>
-              {isExpanded && (
-                <div
-                  className={`mt-2 max-w-[280px] rounded-xl border-2 border-dashed p-3 text-sm leading-relaxed ${
-                    isMine
-                      ? "border-waffle-light/50 bg-butter text-syrup"
-                      : "border-waffle-light/30 bg-cream text-waffle-dark"
-                  }`}
-                >
-                  {w.transcript || (
-                    <span className="italic opacity-60">No transcript available</span>
-                  )}
+
+                  <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="text" value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addComment(w.id)}
+                      placeholder={isPlaying ? `Comment at ${formatTime(playbackTime)}...` : "Add a comment..."}
+                      className="flex-1 rounded-lg border border-waffle-light/40 bg-white/50 px-2 py-1.5 text-xs text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle"
+                    />
+                    <button onClick={() => addComment(w.id)} disabled={!commentText.trim()} className="rounded-lg bg-waffle px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-30">
+                      Send
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -340,52 +303,29 @@ export function CircleView({
         {uploading ? (
           <div className="flex items-center gap-3">
             <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-waffle border-t-transparent" />
-            <p className="font-display font-medium text-waffle-dark">
-              Sending your waffle...
-            </p>
+            <p className="font-display font-medium text-waffle-dark">Sending your waffle...</p>
           </div>
         ) : recording ? (
           <>
-            <p className="mb-3 font-mono text-2xl font-bold text-red-600 tabular-nums">
-              {formatTime(recordingTime)}
-            </p>
-            <button
-              onClick={stopRecording}
-              className="btn-record btn-record-active"
-              aria-label="Stop recording"
-            >
+            <p className="mb-3 font-mono text-2xl font-bold text-red-600 tabular-nums">{formatTime(recordingTime)}</p>
+            <button onClick={stopRecording} className="btn-record btn-record-active" aria-label="Stop recording">
               <span className="relative z-10 block h-7 w-7 rounded bg-white" />
             </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">
-              Tap to stop &amp; send
-            </p>
+            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to stop &amp; send</p>
           </>
         ) : (
           <>
             {micError && (
               <div className="mb-4 w-full rounded-xl border-2 border-red-200 bg-red-50 p-4 text-left">
-                <p className="font-display text-sm font-semibold text-red-800">
-                  Microphone unavailable
-                </p>
+                <p className="font-display text-sm font-semibold text-red-800">Microphone unavailable</p>
                 <p className="mt-1 text-sm leading-relaxed text-red-600">{micError}</p>
-                <button
-                  onClick={() => setMicError(null)}
-                  className="mt-2 text-xs font-bold text-red-400 hover:text-red-600"
-                >
-                  Dismiss
-                </button>
+                <button onClick={() => setMicError(null)} className="mt-2 text-xs font-bold text-red-400 hover:text-red-600">Dismiss</button>
               </div>
             )}
-            <button
-              onClick={startRecording}
-              className="btn-record"
-              aria-label="Start recording"
-            >
+            <button onClick={startRecording} className="btn-record" aria-label="Start recording">
               <span className="relative z-10 block h-5 w-5 rounded-full bg-white shadow-sm" />
             </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">
-              Tap to record a waffle
-            </p>
+            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to record a waffle</p>
           </>
         )}
       </div>

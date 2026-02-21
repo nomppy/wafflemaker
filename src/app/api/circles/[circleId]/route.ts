@@ -53,20 +53,20 @@ export async function GET(
     )
     .all(circleId) as Record<string, unknown>[];
 
-  // Attach reactions
-  const getReactions = db.prepare(
-    `SELECT r.id, r.user_id, r.emoji, r.timestamp_seconds, r.created_at,
+  // Attach comments
+  const getComments = db.prepare(
+    `SELECT c.id, c.user_id, c.text, c.timestamp_seconds, c.created_at,
             u.display_name as user_name
-     FROM reactions r
-     JOIN users u ON u.id = r.user_id
-     WHERE r.waffle_id = ?
-     ORDER BY r.timestamp_seconds ASC`
+     FROM comments c
+     JOIN users u ON u.id = c.user_id
+     WHERE c.waffle_id = ?
+     ORDER BY c.timestamp_seconds ASC`
   );
 
-  const wafflesWithReactions = waffles.map((w) => ({
+  const wafflesWithComments = waffles.map((w) => ({
     ...w,
-    reactions: getReactions.all(w.id as string),
+    comments: getComments.all(w.id as string),
   }));
 
-  return NextResponse.json({ circle, members, waffles: wafflesWithReactions });
+  return NextResponse.json({ circle, members, waffles: wafflesWithComments });
 }

@@ -18,10 +18,6 @@ export async function POST(req: NextRequest) {
   const duration = parseInt(formData.get("duration") as string) || 0;
   const transcript = (formData.get("transcript") as string) || "";
   const wordTimestamps = (formData.get("word_timestamps") as string) || "";
-  const replyToId = (formData.get("reply_to_id") as string) || null;
-  const replyToTimestamp = formData.get("reply_to_timestamp")
-    ? parseFloat(formData.get("reply_to_timestamp") as string)
-    : null;
 
   if ((!pairId && !circleId) || !audio) {
     return NextResponse.json({ error: "pairId or circleId, and audio required" }, { status: 400 });
@@ -59,8 +55,8 @@ export async function POST(req: NextRequest) {
   saveAudio(storageKey, buffer);
 
   db.prepare(
-    "INSERT INTO waffles (id, pair_id, circle_id, sender_id, storage_key, duration_seconds, transcript, word_timestamps, reply_to_id, reply_to_timestamp, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, pairId, circleId, user.id, storageKey, duration, transcript, wordTimestamps, replyToId, replyToTimestamp, expiresAt);
+    "INSERT INTO waffles (id, pair_id, circle_id, sender_id, storage_key, duration_seconds, transcript, word_timestamps, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run(id, pairId, circleId, user.id, storageKey, duration, transcript, wordTimestamps, expiresAt);
 
   return NextResponse.json({ id, ok: true });
 }
