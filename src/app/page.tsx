@@ -233,81 +233,36 @@ export default function Home() {
           How it works
         </h2>
         <div className="space-y-5">
-          {/* Step 1: Pair up */}
-          <div className="card-cottage flex items-start gap-4 p-5 transition-all">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-butter shadow-sm">
-              <svg viewBox="0 0 28 28" className="w-6 text-waffle-dark" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <circle cx="9" cy="9" r="4" />
-                <circle cx="19" cy="9" r="4" />
-                <path d="M2 24c0-4 3-7 7-7 1.5 0 3 .4 4 1.2M26 24c0-4-3-7-7-7-1.5 0-3 .4-4 1.2" />
-              </svg>
-            </div>
-            <div>
+          {[
+            {
+              num: "01",
+              title: "Pair up",
+              desc: "Send an invite link to a friend. Once they join, you\u2019re a waffle pair.",
+            },
+            {
+              num: "02",
+              title: "Record your waffle",
+              desc: "Every Wednesday, tap record and talk for a couple minutes. A transcript is auto-generated so you can skim later.",
+            },
+            {
+              num: "03",
+              title: "Listen on your own time",
+              desc: "No need to be online at the same time. Listen when it suits you. It\u2019s async friendship.",
+            },
+            {
+              num: "04",
+              title: "Keep the streak going",
+              desc: "Your streak counts consecutive Wednesdays. See how long you can keep it up.",
+            },
+          ].map((step) => (
+            <div key={step.num} className="card-cottage p-5 transition-all">
               <div className="mb-1 flex items-center gap-2">
-                <span className="counter-retro">01</span>
-                <span className="font-display text-lg font-semibold text-syrup">Pair up</span>
+                <span className="counter-retro">{step.num}</span>
+                <span className="font-display text-lg font-semibold text-syrup">{step.title}</span>
               </div>
-              <p className="leading-relaxed text-waffle-dark/90">Send an invite link to a friend. Once they join, you&apos;re a waffle pair.</p>
+              <p className="leading-relaxed text-waffle-dark/90">{step.desc}</p>
             </div>
-          </div>
-
-          {/* Step 2: Record */}
-          <div className="card-cottage flex items-start gap-4 p-5 transition-all">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-butter shadow-sm">
-              <svg viewBox="0 0 28 28" className="w-6 text-waffle-dark" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <rect x="10" y="3" width="8" height="14" rx="4" />
-                <path d="M7 14c0 4 3 7 7 7s7-3 7-7" />
-                <line x1="14" y1="21" x2="14" y2="25" />
-                <line x1="10" y1="25" x2="18" y2="25" />
-              </svg>
-            </div>
-            <div>
-              <div className="mb-1 flex items-center gap-2">
-                <span className="counter-retro">02</span>
-                <span className="font-display text-lg font-semibold text-syrup">Record your waffle</span>
-              </div>
-              <p className="leading-relaxed text-waffle-dark/90">Every Wednesday, tap record and talk for a couple minutes. A transcript is auto-generated so you can skim later.</p>
-            </div>
-          </div>
-
-          {/* Step 3: Listen */}
-          <div className="card-cottage flex items-start gap-4 p-5 transition-all">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-butter shadow-sm">
-              <svg viewBox="0 0 28 28" className="w-6 text-waffle-dark" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M4 11v6c0 1 1 2 2 2h2l5 5V6L8 11H6c-1 0-2 1-2 2z" />
-                <path d="M19 9c1.3 1.3 2 3 2 5s-.7 3.7-2 5" />
-                <path d="M22 6c2 2 3.2 4.8 3.2 8s-1.2 6-3.2 8" />
-              </svg>
-            </div>
-            <div>
-              <div className="mb-1 flex items-center gap-2">
-                <span className="counter-retro">03</span>
-                <span className="font-display text-lg font-semibold text-syrup">Listen on your own time</span>
-              </div>
-              <p className="leading-relaxed text-waffle-dark/90">No need to be online at the same time. Listen when it suits you. It&apos;s async friendship.</p>
-            </div>
-          </div>
-
-          {/* Step 4: Streak */}
-          <div className="card-cottage flex items-start gap-4 p-5 transition-all">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-butter shadow-sm">
-              <svg viewBox="0 0 28 28" className="w-6 text-waffle-dark" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <rect x="4" y="4" width="20" height="20" rx="3" />
-                <line x1="4" y1="10" x2="24" y2="10" />
-                <line x1="10" y1="4" x2="10" y2="10" />
-                <line x1="18" y1="4" x2="18" y2="10" />
-                <path d="M9 15l2 2 4-4" />
-                <path d="M9 20h6" strokeDasharray="2 2" />
-              </svg>
-            </div>
-            <div>
-              <div className="mb-1 flex items-center gap-2">
-                <span className="counter-retro">04</span>
-                <span className="font-display text-lg font-semibold text-syrup">Keep the streak going</span>
-              </div>
-              <p className="leading-relaxed text-waffle-dark/90">Your streak counts consecutive Wednesdays. See how long you can keep it up.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
