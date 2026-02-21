@@ -43,3 +43,9 @@ waffles.db-wal
 .vercel/
 waffles.db
 test-results/
+
+# Build artifacts
+.open-next/
+.vercel/
+wafflemaker.db
+test-results/
