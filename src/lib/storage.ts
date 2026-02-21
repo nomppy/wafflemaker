@@ -1,7 +1,7 @@
-import { getRequestContext } from "@cloudflare/next-on-pages";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 function getAudioBucket(): R2Bucket {
-  return getRequestContext().env.AUDIO_BUCKET;
+  return (getCloudflareContext() as any).env.AUDIO_BUCKET;
 }
 
 export async function saveAudio(key: string, data: ArrayBuffer | ReadableStream | Uint8Array) {

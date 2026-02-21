@@ -1,5 +1,3 @@
-export const runtime = "edge";
-
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMagicLink, getOrCreateUser, createSession } from "@/lib/auth";
 

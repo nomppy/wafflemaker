@@ -77,11 +77,3 @@ interface CloudflareEnv {
   DB: D1Database;
   AUDIO_BUCKET: R2Bucket;
 }
-
-declare module "@cloudflare/next-on-pages" {
-  export function getRequestContext(): {
-    env: CloudflareEnv;
-    ctx: ExecutionContext;
-    cf: Record<string, unknown>;
-  };
-}
