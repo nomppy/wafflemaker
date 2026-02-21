@@ -80,6 +80,7 @@ export function PairView({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const transcriptRef = useRef<string>("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const loadWaffles = useCallback(async () => {
     const res = await fetch(`/api/waffles/${pairId}`);
@@ -92,6 +93,13 @@ export function PairView({
   useEffect(() => {
     loadWaffles();
   }, [loadWaffles]);
+
+  // Auto-scroll to bottom when waffles change (newest at bottom)
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [waffles]);
 
   async function startRecording() {
     setMicError(null);
@@ -247,7 +255,7 @@ export function PairView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Waffles list */}
-      <div className="flex-1 space-y-4 overflow-y-auto pb-4">
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto pb-4">
         {waffles.length === 0 && !recording && (
           <div className="card-cottage bg-waffle-texture p-7 text-center">
             <WaffleEmptyIcon />

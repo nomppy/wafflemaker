@@ -34,7 +34,7 @@ export async function GET(
        FROM waffles w
        JOIN users u ON u.id = w.sender_id
        WHERE w.pair_id = ?
-       ORDER BY w.created_at DESC
+       ORDER BY w.created_at ASC
        LIMIT 50`
     )
     .all(pairId);
