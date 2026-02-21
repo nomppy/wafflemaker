@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, generateId } from "@/lib/auth";
@@ -28,11 +28,12 @@ export async function POST(req: NextRequest) {
 
   if (pairId) {
     // Verify user is in this pair
-    const pair = db
+    const pair = await db
       .prepare(
         "SELECT id FROM pairs WHERE id = ? AND (user_a_id = ? OR user_b_id = ?)"
       )
-      .get(pairId, user.id, user.id);
+      .bind(pairId, user.id, user.id)
+      .first();
     if (!pair) {
       return NextResponse.json({ error: "Pair not found" }, { status: 404 });
     }
@@ -40,9 +41,10 @@ export async function POST(req: NextRequest) {
 
   if (circleId) {
     // Verify user is in this circle
-    const member = db
+    const member = await db
       .prepare("SELECT circle_id FROM circle_members WHERE circle_id = ? AND user_id = ?")
-      .get(circleId, user.id);
+      .bind(circleId, user.id)
+      .first();
     if (!member) {
       return NextResponse.json({ error: "Circle not found" }, { status: 404 });
     }
@@ -52,12 +54,15 @@ export async function POST(req: NextRequest) {
   const storageKey = `${id}.webm`;
   const expiresAt = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(); // 4 weeks
 
-  const buffer = Buffer.from(await audio.arrayBuffer());
-  saveAudio(storageKey, buffer);
+  const arrayBuffer = await audio.arrayBuffer();
+  await saveAudio(storageKey, arrayBuffer);
 
-  db.prepare(
-    "INSERT INTO waffles (id, pair_id, circle_id, sender_id, storage_key, duration_seconds, transcript, word_timestamps, title, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, pairId, circleId, user.id, storageKey, duration, transcript, wordTimestamps, title, expiresAt);
+  await db
+    .prepare(
+      "INSERT INTO waffles (id, pair_id, circle_id, sender_id, storage_key, duration_seconds, transcript, word_timestamps, title, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    .bind(id, pairId, circleId, user.id, storageKey, duration, transcript, wordTimestamps, title, expiresAt)
+    .run();
 
   return NextResponse.json({ id, ok: true });
 }
@@ -78,19 +83,20 @@ export async function PATCH(req: NextRequest) {
   const db = getDb();
 
   // Verify user owns this waffle
-  const waffle = db
+  const waffle = await db
     .prepare("SELECT id FROM waffles WHERE id = ? AND sender_id = ?")
-    .get(waffleId, user.id);
+    .bind(waffleId, user.id)
+    .first();
 
   if (!waffle) {
     return NextResponse.json({ error: "Not found or not yours" }, { status: 404 });
   }
 
   if (title !== undefined) {
-    db.prepare("UPDATE waffles SET title = ? WHERE id = ?").run(title, waffleId);
+    await db.prepare("UPDATE waffles SET title = ? WHERE id = ?").bind(title, waffleId).run();
   }
   if (tags !== undefined) {
-    db.prepare("UPDATE waffles SET tags = ? WHERE id = ?").run(tags, waffleId);
+    await db.prepare("UPDATE waffles SET tags = ? WHERE id = ?").bind(tags, waffleId).run();
   }
 
   return NextResponse.json({ ok: true });

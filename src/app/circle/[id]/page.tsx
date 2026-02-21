@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -18,15 +18,17 @@ export default async function CirclePage({
   const db = getDb();
 
   // Verify membership
-  const member = db
+  const member = await db
     .prepare("SELECT circle_id FROM circle_members WHERE circle_id = ? AND user_id = ?")
-    .get(circleId, user.id);
+    .bind(circleId, user.id)
+    .first();
 
   if (!member) redirect("/dashboard");
 
-  const circle = db
+  const circle = await db
     .prepare("SELECT id, name FROM circles WHERE id = ?")
-    .get(circleId) as { id: string; name: string } | undefined;
+    .bind(circleId)
+    .first<{ id: string; name: string }>();
 
   if (!circle) redirect("/dashboard");
 

@@ -1,18 +1,21 @@
 import { getDb } from "./db";
 
-export function getStreak(pairId: string, userId: string): number {
+export async function getStreak(
+  pairId: string,
+  userId: string
+): Promise<number> {
   const db = getDb();
 
   // Get all distinct weeks (by Wednesday) where this user sent a waffle in this pair
-  // A "week" is defined by the Wednesday it belongs to
-  const rows = db
+  const { results: rows } = await db
     .prepare(
       `SELECT DISTINCT date(w.created_at, 'weekday 3') as wednesday
        FROM waffles w
        WHERE w.pair_id = ? AND w.sender_id = ?
        ORDER BY wednesday DESC`
     )
-    .all(pairId, userId) as { wednesday: string }[];
+    .bind(pairId, userId)
+    .all<{ wednesday: string }>();
 
   if (rows.length === 0) return 0;
 

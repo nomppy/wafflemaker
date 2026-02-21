@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { redirect } from "next/navigation";
 import { getCurrentUser, generateId } from "@/lib/auth";
@@ -17,17 +17,18 @@ export default async function InvitePage({
   }
 
   const db = getDb();
-  const invite = db
+  const invite = await db
     .prepare(
       "SELECT id, from_user_id, accepted_by_user_id, circle_id, expires_at FROM invites WHERE code = ?"
     )
-    .get(code) as {
-    id: string;
-    from_user_id: string;
-    accepted_by_user_id: string | null;
-    circle_id: string | null;
-    expires_at: string;
-  } | undefined;
+    .bind(code)
+    .first<{
+      id: string;
+      from_user_id: string;
+      accepted_by_user_id: string | null;
+      circle_id: string | null;
+      expires_at: string;
+    }>();
 
   if (!invite) {
     return (
@@ -56,15 +57,16 @@ export default async function InvitePage({
   // Circle invite flow
   if (invite.circle_id) {
     // Check if already a member
-    const existing = db
+    const existing = await db
       .prepare("SELECT circle_id FROM circle_members WHERE circle_id = ? AND user_id = ?")
-      .get(invite.circle_id, user.id);
+      .bind(invite.circle_id, user.id)
+      .first();
 
     if (!existing) {
-      db.prepare("INSERT INTO circle_members (circle_id, user_id) VALUES (?, ?)").run(
-        invite.circle_id,
-        user.id
-      );
+      await db
+        .prepare("INSERT INTO circle_members (circle_id, user_id) VALUES (?, ?)")
+        .bind(invite.circle_id, user.id)
+        .run();
     }
 
     redirect("/dashboard");
@@ -76,12 +78,13 @@ export default async function InvitePage({
   }
 
   // Check if pair already exists
-  const existingPair = db
+  const existingPair = await db
     .prepare(
       `SELECT id FROM pairs
        WHERE (user_a_id = ? AND user_b_id = ?) OR (user_a_id = ? AND user_b_id = ?)`
     )
-    .get(invite.from_user_id, user.id, user.id, invite.from_user_id);
+    .bind(invite.from_user_id, user.id, user.id, invite.from_user_id)
+    .first();
 
   if (existingPair) {
     redirect("/dashboard");
@@ -89,13 +92,15 @@ export default async function InvitePage({
 
   // Accept the invite and create the pair
   const pairId = generateId();
-  db.prepare(
-    "INSERT INTO pairs (id, user_a_id, user_b_id) VALUES (?, ?, ?)"
-  ).run(pairId, invite.from_user_id, user.id);
+  await db
+    .prepare("INSERT INTO pairs (id, user_a_id, user_b_id) VALUES (?, ?, ?)")
+    .bind(pairId, invite.from_user_id, user.id)
+    .run();
 
-  db.prepare(
-    "UPDATE invites SET accepted_by_user_id = ? WHERE id = ?"
-  ).run(user.id, invite.id);
+  await db
+    .prepare("UPDATE invites SET accepted_by_user_id = ? WHERE id = ?")
+    .bind(user.id, invite.id)
+    .run();
 
   redirect("/dashboard");
 }

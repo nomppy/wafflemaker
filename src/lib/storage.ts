@@ -1,26 +1,20 @@
-import fs from "fs";
-import path from "path";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
-const STORAGE_DIR = path.join(process.cwd(), ".storage");
-
-function ensureDir() {
-  if (!fs.existsSync(STORAGE_DIR)) {
-    fs.mkdirSync(STORAGE_DIR, { recursive: true });
-  }
+function getAudioBucket(): R2Bucket {
+  return getRequestContext().env.AUDIO_BUCKET;
 }
 
-export function saveAudio(key: string, buffer: Buffer) {
-  ensureDir();
-  fs.writeFileSync(path.join(STORAGE_DIR, key), buffer);
+export async function saveAudio(key: string, data: ArrayBuffer | ReadableStream | Uint8Array) {
+  const bucket = getAudioBucket();
+  await bucket.put(key, data);
 }
 
-export function getAudio(key: string): Buffer | null {
-  const filePath = path.join(STORAGE_DIR, key);
-  if (!fs.existsSync(filePath)) return null;
-  return fs.readFileSync(filePath);
+export async function getAudio(key: string): Promise<R2ObjectBody | null> {
+  const bucket = getAudioBucket();
+  return bucket.get(key);
 }
 
-export function deleteAudio(key: string) {
-  const filePath = path.join(STORAGE_DIR, key);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+export async function deleteAudio(key: string) {
+  const bucket = getAudioBucket();
+  await bucket.delete(key);
 }

@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,31 +17,34 @@ export async function GET(
   const db = getDb();
 
   // Verify user is a member
-  const member = db
+  const member = await db
     .prepare("SELECT circle_id FROM circle_members WHERE circle_id = ? AND user_id = ?")
-    .get(circleId, user.id);
+    .bind(circleId, user.id)
+    .first();
 
   if (!member) {
     return NextResponse.json({ error: "Not a member" }, { status: 403 });
   }
 
   // Get circle info
-  const circle = db
+  const circle = await db
     .prepare("SELECT id, name, created_by, created_at FROM circles WHERE id = ?")
-    .get(circleId);
+    .bind(circleId)
+    .first();
 
   // Get members
-  const members = db
+  const { results: members } = await db
     .prepare(
       `SELECT u.id, u.display_name, u.email
        FROM circle_members cm
        JOIN users u ON u.id = cm.user_id
        WHERE cm.circle_id = ?`
     )
-    .all(circleId);
+    .bind(circleId)
+    .all();
 
   // Get waffles
-  const waffles = db
+  const { results: waffles } = await db
     .prepare(
       `SELECT w.id, w.sender_id, w.duration_seconds, w.transcript, w.word_timestamps, w.title, w.tags, w.reply_to_id, w.reply_to_timestamp, w.created_at,
               u.display_name as sender_name
@@ -51,22 +54,26 @@ export async function GET(
        ORDER BY w.created_at ASC
        LIMIT 100`
     )
-    .all(circleId) as Record<string, unknown>[];
+    .bind(circleId)
+    .all<Record<string, unknown>>();
 
   // Attach comments
-  const getComments = db.prepare(
-    `SELECT c.id, c.user_id, c.text, c.timestamp_seconds, c.created_at,
-            u.display_name as user_name
-     FROM comments c
-     JOIN users u ON u.id = c.user_id
-     WHERE c.waffle_id = ?
-     ORDER BY c.timestamp_seconds ASC`
+  const wafflesWithComments = await Promise.all(
+    waffles.map(async (w: Record<string, unknown>) => {
+      const { results: comments } = await db
+        .prepare(
+          `SELECT c.id, c.user_id, c.text, c.timestamp_seconds, c.created_at,
+                  u.display_name as user_name
+           FROM comments c
+           JOIN users u ON u.id = c.user_id
+           WHERE c.waffle_id = ?
+           ORDER BY c.timestamp_seconds ASC`
+        )
+        .bind(w.id as string)
+        .all();
+      return { ...w, comments };
+    })
   );
-
-  const wafflesWithComments = waffles.map((w) => ({
-    ...w,
-    comments: getComments.all(w.id as string),
-  }));
 
   return NextResponse.json({ circle, members, waffles: wafflesWithComments });
 }

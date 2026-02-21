@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, generateId } from "@/lib/auth";
@@ -27,7 +27,7 @@ export async function POST(
   const db = getDb();
 
   // Verify user has access via pair or circle
-  const waffle = db
+  const waffle = await db
     .prepare(
       `SELECT w.id FROM waffles w
        LEFT JOIN pairs p ON p.id = w.pair_id
@@ -36,16 +36,20 @@ export async function POST(
          (p.user_a_id = ? OR p.user_b_id = ?) OR cm.user_id IS NOT NULL
        )`
     )
-    .get(user.id, waffleId, user.id, user.id);
+    .bind(user.id, waffleId, user.id, user.id)
+    .first();
 
   if (!waffle) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const id = generateId();
-  db.prepare(
-    "INSERT INTO comments (id, waffle_id, user_id, text, timestamp_seconds) VALUES (?, ?, ?, ?, ?)"
-  ).run(id, waffleId, user.id, text.trim(), timestampSeconds);
+  await db
+    .prepare(
+      "INSERT INTO comments (id, waffle_id, user_id, text, timestamp_seconds) VALUES (?, ?, ?, ?, ?)"
+    )
+    .bind(id, waffleId, user.id, text.trim(), timestampSeconds)
+    .run();
 
   return NextResponse.json({ id, ok: true });
 }

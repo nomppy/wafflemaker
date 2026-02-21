@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,17 +17,18 @@ export async function GET(
   const db = getDb();
 
   // Verify user is in this pair
-  const pair = db
+  const pair = await db
     .prepare(
       "SELECT id FROM pairs WHERE id = ? AND (user_a_id = ? OR user_b_id = ?)"
     )
-    .get(pairId, user.id, user.id);
+    .bind(pairId, user.id, user.id)
+    .first();
 
   if (!pair) {
     return NextResponse.json({ error: "Pair not found" }, { status: 404 });
   }
 
-  const waffles = db
+  const { results: waffles } = await db
     .prepare(
       `SELECT w.id, w.sender_id, w.duration_seconds, w.transcript, w.word_timestamps, w.title, w.tags, w.created_at,
               u.display_name as sender_name
@@ -37,22 +38,26 @@ export async function GET(
        ORDER BY w.created_at ASC
        LIMIT 50`
     )
-    .all(pairId) as Record<string, unknown>[];
+    .bind(pairId)
+    .all<Record<string, unknown>>();
 
   // Attach comments to each waffle
-  const getComments = db.prepare(
-    `SELECT c.id, c.user_id, c.text, c.timestamp_seconds, c.created_at,
-            u.display_name as user_name
-     FROM comments c
-     JOIN users u ON u.id = c.user_id
-     WHERE c.waffle_id = ?
-     ORDER BY c.timestamp_seconds ASC`
+  const wafflesWithComments = await Promise.all(
+    waffles.map(async (w: Record<string, unknown>) => {
+      const { results: comments } = await db
+        .prepare(
+          `SELECT c.id, c.user_id, c.text, c.timestamp_seconds, c.created_at,
+                  u.display_name as user_name
+           FROM comments c
+           JOIN users u ON u.id = c.user_id
+           WHERE c.waffle_id = ?
+           ORDER BY c.timestamp_seconds ASC`
+        )
+        .bind(w.id as string)
+        .all();
+      return { ...w, comments };
+    })
   );
-
-  const wafflesWithComments = waffles.map((w) => ({
-    ...w,
-    comments: getComments.all(w.id as string),
-  }));
 
   return NextResponse.json(wafflesWithComments);
 }

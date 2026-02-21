@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, generateId } from "@/lib/auth";
@@ -20,17 +20,16 @@ export async function POST(req: NextRequest) {
   const db = getDb();
   const id = generateId();
 
-  db.prepare("INSERT INTO circles (id, name, created_by) VALUES (?, ?, ?)").run(
-    id,
-    name.trim(),
-    user.id
-  );
+  await db
+    .prepare("INSERT INTO circles (id, name, created_by) VALUES (?, ?, ?)")
+    .bind(id, name.trim(), user.id)
+    .run();
 
   // Creator is automatically a member
-  db.prepare("INSERT INTO circle_members (circle_id, user_id) VALUES (?, ?)").run(
-    id,
-    user.id
-  );
+  await db
+    .prepare("INSERT INTO circle_members (circle_id, user_id) VALUES (?, ?)")
+    .bind(id, user.id)
+    .run();
 
   return NextResponse.json({ id, ok: true });
 }

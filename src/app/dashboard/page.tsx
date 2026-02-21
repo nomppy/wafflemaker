@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -22,9 +22,9 @@ interface Circle {
   member_count: number;
 }
 
-function getUserPairs(userId: string): Pair[] {
+async function getUserPairs(userId: string): Promise<Pair[]> {
   const db = getDb();
-  return db
+  const { results } = await db
     .prepare(
       `SELECT p.id,
               CASE WHEN p.user_a_id = ? THEN ub.display_name ELSE ua.display_name END as partner_name,
@@ -34,12 +34,14 @@ function getUserPairs(userId: string): Pair[] {
        JOIN users ub ON ub.id = p.user_b_id
        WHERE p.user_a_id = ? OR p.user_b_id = ?`
     )
-    .all(userId, userId, userId, userId) as Pair[];
+    .bind(userId, userId, userId, userId)
+    .all<Pair>();
+  return results;
 }
 
-function getUserCircles(userId: string): Circle[] {
+async function getUserCircles(userId: string): Promise<Circle[]> {
   const db = getDb();
-  return db
+  const { results } = await db
     .prepare(
       `SELECT c.id, c.name,
               (SELECT COUNT(*) FROM circle_members WHERE circle_id = c.id) as member_count
@@ -47,7 +49,9 @@ function getUserCircles(userId: string): Circle[] {
        JOIN circle_members cm ON cm.circle_id = c.id
        WHERE cm.user_id = ?`
     )
-    .all(userId) as Circle[];
+    .bind(userId)
+    .all<Circle>();
+  return results;
 }
 
 function EmptyPlateIcon() {
@@ -80,11 +84,14 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const pairs = getUserPairs(user.id).map((p) => ({
-    ...p,
-    streak: getStreak(p.id, user.id),
-  }));
-  const circles = getUserCircles(user.id);
+  const rawPairs = await getUserPairs(user.id);
+  const pairs = await Promise.all(
+    rawPairs.map(async (p) => ({
+      ...p,
+      streak: await getStreak(p.id, user.id),
+    }))
+  );
+  const circles = await getUserCircles(user.id);
 
   return (
     <main className="mx-auto max-w-lg p-6">

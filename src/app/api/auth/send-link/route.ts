@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { createMagicLink } from "@/lib/auth";
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Valid email required" }, { status: 400 });
   }
 
-  const token = createMagicLink(email);
+  const token = await createMagicLink(email);
 
   // Build magic URL with optional redirect
   const verifyUrl = new URL("/api/auth/verify", req.nextUrl.origin);

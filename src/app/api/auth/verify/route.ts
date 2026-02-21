@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMagicLink, getOrCreateUser, createSession } from "@/lib/auth";
@@ -10,13 +10,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=missing_token", req.url));
   }
 
-  const result = verifyMagicLink(token);
+  const result = await verifyMagicLink(token);
   if (!result) {
     return NextResponse.redirect(new URL("/login?error=invalid_token", req.url));
   }
 
-  const user = getOrCreateUser(result.email);
-  const sessionId = createSession(user.id);
+  const user = await getOrCreateUser(result.email);
+  const sessionId = await createSession(user.id);
 
   const redirectTo = req.nextUrl.searchParams.get("redirect");
   const destination = redirectTo && redirectTo.startsWith("/") ? redirectTo : "/dashboard";

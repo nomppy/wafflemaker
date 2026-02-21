@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,7 +17,7 @@ export async function GET(
   const { id } = await params;
   const db = getDb();
 
-  const waffle = db
+  const waffle = await db
     .prepare(
       `SELECT w.storage_key
        FROM waffles w
@@ -27,21 +27,22 @@ export async function GET(
          (p.user_a_id = ? OR p.user_b_id = ?) OR cm.user_id IS NOT NULL
        )`
     )
-    .get(user.id, id, user.id, user.id) as { storage_key: string } | undefined;
+    .bind(user.id, id, user.id, user.id)
+    .first<{ storage_key: string }>();
 
   if (!waffle) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const audio = getAudio(waffle.storage_key);
+  const audio = await getAudio(waffle.storage_key);
   if (!audio) {
     return NextResponse.json({ error: "Audio not found" }, { status: 404 });
   }
 
-  return new NextResponse(audio, {
+  return new NextResponse(audio.body, {
     headers: {
       "Content-Type": "audio/webm",
-      "Content-Length": audio.length.toString(),
+      "Content-Length": (audio.size || 0).toString(),
     },
   });
 }
