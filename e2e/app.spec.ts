@@ -228,6 +228,32 @@ test.describe("Wednesday Waffles E2E", () => {
     }
   });
 
+  test("mobile viewport: pair page is usable at 375px", async ({ browser }) => {
+    const context = await browser.newContext({
+      viewport: { width: 375, height: 667 },
+      permissions: ["microphone"],
+    });
+    const page = await context.newPage();
+
+    try {
+      await loginAs(page, "mobile-test@test.com");
+
+      // Dashboard should fit
+      await expect(page.getByText("Your Waffles")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Invite a friend" })
+      ).toBeVisible();
+
+      // Check that nothing overflows horizontally
+      const bodyWidth = await page.evaluate(
+        () => document.body.scrollWidth
+      );
+      expect(bodyWidth).toBeLessThanOrEqual(375);
+    } finally {
+      await context.close();
+    }
+  });
+
   test("logout flow", async ({ page }) => {
     await loginAs(page, "logout-test@test.com");
     await expect(page.getByText("Your Waffles")).toBeVisible();

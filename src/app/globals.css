@@ -1,1 +1,5 @@
 @import "tailwindcss";
+
+.safe-b {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}

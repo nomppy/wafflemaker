@@ -148,9 +148,9 @@ export function PairView({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Waffles list */}
-      <div className="flex-1 space-y-3 overflow-y-auto">
+      <div className="flex-1 space-y-3 overflow-y-auto pb-4">
         {waffles.length === 0 && !recording && (
           <div className="rounded-xl bg-amber-100 p-6 text-center">
             <p className="mb-2 text-lg font-medium text-amber-900">
@@ -223,8 +223,8 @@ export function PairView({
         })}
       </div>
 
-      {/* Record area */}
-      <div className="mt-6 flex flex-col items-center pb-4">
+      {/* Record area - sticky at bottom */}
+      <div className="sticky bottom-0 mt-auto flex flex-col items-center border-t border-amber-100 bg-amber-50 pb-6 pt-4 safe-b">
         {uploading ? (
           <p className="text-amber-700">Sending your waffle...</p>
         ) : recording ? (
@@ -234,7 +234,7 @@ export function PairView({
             </p>
             <button
               onClick={stopRecording}
-              className="h-16 w-16 rounded-full bg-red-500 shadow-lg transition hover:bg-red-600"
+              className="h-20 w-20 rounded-full bg-red-500 shadow-lg transition hover:bg-red-600 active:scale-95"
               aria-label="Stop recording"
             >
               <span className="mx-auto block h-6 w-6 rounded bg-white" />
@@ -257,7 +257,7 @@ export function PairView({
             </div>
             <button
               onClick={startRecording}
-              className="h-16 w-16 rounded-full bg-amber-600 shadow-lg transition hover:bg-amber-700"
+              className="h-20 w-20 rounded-full bg-amber-600 shadow-lg transition hover:bg-amber-700 active:scale-95"
               aria-label="Start recording"
             >
               <span className="mx-auto block h-4 w-4 rounded-full bg-white" />
