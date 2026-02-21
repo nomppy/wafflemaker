@@ -2,10 +2,50 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly length: number;
+  [index: number]: { transcript: string; confidence: number };
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
 declare global {
   interface Window {
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
   }
+}
+
+interface WordTimestamp {
+  word: string;
+  start: number;
+  end: number;
 }
 
 interface Waffle {
@@ -14,6 +54,7 @@ interface Waffle {
   sender_name: string;
   duration_seconds: number;
   transcript: string;
+  word_timestamps: string; // JSON array of WordTimestamp
   created_at: string;
 }
 
@@ -67,6 +108,8 @@ export function PairView({
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [playbackDuration, setPlaybackDuration] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState(TALK_PROMPTS[0]);
   const [micError, setMicError] = useState<string | null>(null);
@@ -79,7 +122,10 @@ export function PairView({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const transcriptRef = useRef<string>("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const wordTimestampsRef = useRef<WordTimestamp[]>([]);
+  const recordingStartRef = useRef<number>(0);
+  const lastResultTimeRef = useRef<number>(0);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const loadWaffles = useCallback(async () => {
@@ -121,8 +167,12 @@ export function PairView({
         setRecordingTime((t) => t + 1);
       }, 1000);
 
-      // Start speech recognition for transcription
+      // Start speech recognition for transcription with word timestamps
       transcriptRef.current = "";
+      wordTimestampsRef.current = [];
+      const recStart = performance.now();
+      recordingStartRef.current = recStart;
+      lastResultTimeRef.current = recStart;
       const SpeechRecognitionAPI =
         window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognitionAPI) {
@@ -133,11 +183,29 @@ export function PairView({
           recognition.lang = "en-US";
           let aborted = false;
           recognition.onresult = (event: SpeechRecognitionEvent) => {
+            const now = performance.now();
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
-                transcriptRef.current += event.results[i][0].transcript;
+                const text = event.results[i][0].transcript;
+                transcriptRef.current += text;
+
+                // Estimate word-level timestamps
+                const words = text.trim().split(/\s+/).filter(Boolean);
+                if (words.length > 0) {
+                  const segStart = (lastResultTimeRef.current - recordingStartRef.current) / 1000;
+                  const segEnd = (now - recordingStartRef.current) / 1000;
+                  const wordDur = (segEnd - segStart) / words.length;
+                  for (let j = 0; j < words.length; j++) {
+                    wordTimestampsRef.current.push({
+                      word: words[j],
+                      start: segStart + j * wordDur,
+                      end: segStart + (j + 1) * wordDur,
+                    });
+                  }
+                }
               }
             }
+            lastResultTimeRef.current = now;
           };
           recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
             // "no-speech" is normal; other errors mean we should stop trying
@@ -190,12 +258,13 @@ export function PairView({
     }
 
     const transcript = transcriptRef.current.trim();
+    const wordTimestamps = [...wordTimestampsRef.current];
 
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
       mediaRecorder.current.onstop = async () => {
         mediaRecorder.current!.stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks.current, { type: "audio/webm" });
-        await uploadWaffle(blob, duration, transcript);
+        await uploadWaffle(blob, duration, transcript, wordTimestamps);
       };
       mediaRecorder.current.stop();
     }
@@ -203,13 +272,16 @@ export function PairView({
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
-  async function uploadWaffle(blob: Blob, duration: number, transcript: string) {
+  async function uploadWaffle(blob: Blob, duration: number, transcript: string, wordTimestamps: WordTimestamp[]) {
     setUploading(true);
     const formData = new FormData();
     formData.append("pairId", pairId);
     formData.append("audio", blob, "waffle.webm");
     formData.append("duration", String(duration));
     formData.append("transcript", transcript);
+    if (wordTimestamps.length > 0) {
+      formData.append("word_timestamps", JSON.stringify(wordTimestamps));
+    }
 
     await fetch("/api/waffles", { method: "POST", body: formData });
     setUploading(false);
@@ -218,26 +290,58 @@ export function PairView({
     loadWaffles();
   }
 
+  function stopPlayback() {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.ontimeupdate = null;
+      audioRef.current.onloadedmetadata = null;
+      audioRef.current = null;
+    }
+    setPlayingId(null);
+    setPlaybackTime(0);
+    setPlaybackDuration(0);
+  }
+
   function playWaffle(id: string) {
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.ontimeupdate = null;
+      audioRef.current.onloadedmetadata = null;
       audioRef.current = null;
     }
     if (playingId === id) {
-      setPlayingId(null);
+      stopPlayback();
       return;
     }
     const audio = new Audio(`/api/waffles/audio/${id}`);
-    audio.onended = () => setPlayingId(null);
-    audio.onerror = () => setPlayingId(null);
-    audio.play().catch(() => setPlayingId(null));
+    audio.onended = () => stopPlayback();
+    audio.onerror = () => stopPlayback();
+    audio.ontimeupdate = () => setPlaybackTime(audio.currentTime);
+    audio.onloadedmetadata = () => setPlaybackDuration(audio.duration);
+    audio.play().catch(() => stopPlayback());
     audioRef.current = audio;
     setPlayingId(id);
+    setPlaybackTime(0);
+  }
+
+  function seekAudio(fraction: number) {
+    if (audioRef.current && playbackDuration > 0) {
+      audioRef.current.currentTime = fraction * playbackDuration;
+      setPlaybackTime(audioRef.current.currentTime);
+    }
+  }
+
+  function seekToTime(seconds: number) {
+    if (audioRef.current) {
+      audioRef.current.currentTime = seconds;
+      setPlaybackTime(seconds);
+    }
   }
 
   function formatTime(seconds: number) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    const total = Math.floor(seconds);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   }
 
@@ -273,28 +377,52 @@ export function PairView({
           const isMine = w.sender_id === currentUserId;
           const isPlaying = playingId === w.id;
           const isExpanded = expandedId === w.id;
+          const wordTs: WordTimestamp[] = w.word_timestamps
+            ? (() => { try { return JSON.parse(w.word_timestamps); } catch { return []; } })()
+            : [];
+          const progress = isPlaying && playbackDuration > 0
+            ? playbackTime / playbackDuration
+            : 0;
           return (
             <div
               key={w.id}
               className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
             >
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => playWaffle(w.id)}
+                <div
                   className={`px-4 py-3 transition-all ${
                     isMine ? "bubble-mine" : "bubble-theirs"
                   } ${isPlaying ? "ring-2 ring-waffle-light ring-offset-2" : ""}`}
                 >
-                  <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => playWaffle(w.id)}
+                    className="flex w-full items-center gap-2"
+                  >
                     <span className="text-lg">{isPlaying ? "⏸" : "▶"}</span>
                     <span className="font-display text-sm font-semibold">
-                      {formatTime(w.duration_seconds)}
+                      {isPlaying
+                        ? `${formatTime(playbackTime)} / ${formatTime(playbackDuration || w.duration_seconds)}`
+                        : formatTime(w.duration_seconds)}
                     </span>
-                  </div>
+                  </button>
+                  {isPlaying && (
+                    <div
+                      className="mt-2 h-1.5 cursor-pointer rounded-full bg-waffle-light/30"
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        seekAudio((e.clientX - rect.left) / rect.width);
+                      }}
+                    >
+                      <div
+                        className="h-full rounded-full bg-waffle transition-[width] duration-100"
+                        style={{ width: `${progress * 100}%` }}
+                      />
+                    </div>
+                  )}
                   <p className="mt-1 text-xs opacity-70">
                     {w.sender_name} &middot; {formatDate(w.created_at)}
                   </p>
-                </button>
+                </div>
                 <button
                   onClick={() =>
                     setExpandedId(isExpanded ? null : w.id)
@@ -317,7 +445,39 @@ export function PairView({
                       : "border-waffle-light/30 bg-cream text-waffle-dark"
                   }`}
                 >
-                  {w.transcript || <span className="italic opacity-60">No transcript available</span>}
+                  {w.transcript ? (
+                    wordTs.length > 0 ? (
+                      <span>
+                        {wordTs.map((wt, idx) => {
+                          const active = isPlaying &&
+                            playbackTime >= wt.start &&
+                            playbackTime < wt.end;
+                          return (
+                            <span
+                              key={idx}
+                              onClick={() => {
+                                if (!isPlaying) playWaffle(w.id);
+                                // Use setTimeout to let audio load before seeking
+                                if (isPlaying) seekToTime(wt.start);
+                                else setTimeout(() => seekToTime(wt.start), 300);
+                              }}
+                              className={`cursor-pointer transition-colors ${
+                                active
+                                  ? "rounded bg-waffle/20 font-semibold text-syrup"
+                                  : "hover:text-waffle"
+                              }`}
+                            >
+                              {wt.word}{idx < wordTs.length - 1 ? " " : ""}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    ) : (
+                      w.transcript
+                    )
+                  ) : (
+                    <span className="italic opacity-60">No transcript available</span>
+                  )}
                 </div>
               )}
             </div>

@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
   const audio = formData.get("audio") as File;
   const duration = parseInt(formData.get("duration") as string) || 0;
   const transcript = (formData.get("transcript") as string) || "";
+  const wordTimestamps = (formData.get("word_timestamps") as string) || "";
 
   if (!pairId || !audio) {
     return NextResponse.json({ error: "pairId and audio required" }, { status: 400 });
@@ -42,8 +43,8 @@ export async function POST(req: NextRequest) {
   saveAudio(storageKey, buffer);
 
   db.prepare(
-    "INSERT INTO waffles (id, pair_id, sender_id, storage_key, duration_seconds, transcript, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, pairId, user.id, storageKey, duration, transcript, expiresAt);
+    "INSERT INTO waffles (id, pair_id, sender_id, storage_key, duration_seconds, transcript, word_timestamps, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run(id, pairId, user.id, storageKey, duration, transcript, wordTimestamps, expiresAt);
 
   return NextResponse.json({ id, ok: true });
 }
