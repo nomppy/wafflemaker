@@ -48,3 +48,37 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ id, ok: true });
 }
+
+export async function PATCH(req: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const { waffleId, title, tags } = body;
+
+  if (!waffleId) {
+    return NextResponse.json({ error: "waffleId required" }, { status: 400 });
+  }
+
+  const db = getDb();
+
+  // Verify user owns this waffle
+  const waffle = db
+    .prepare("SELECT id FROM waffles WHERE id = ? AND sender_id = ?")
+    .get(waffleId, user.id);
+
+  if (!waffle) {
+    return NextResponse.json({ error: "Not found or not yours" }, { status: 404 });
+  }
+
+  if (title !== undefined) {
+    db.prepare("UPDATE waffles SET title = ? WHERE id = ?").run(title, waffleId);
+  }
+  if (tags !== undefined) {
+    db.prepare("UPDATE waffles SET tags = ? WHERE id = ?").run(tags, waffleId);
+  }
+
+  return NextResponse.json({ ok: true });
+}

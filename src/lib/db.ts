@@ -63,6 +63,8 @@ function migrate(db: Database.Database) {
       duration_seconds INTEGER NOT NULL DEFAULT 0,
       transcript TEXT NOT NULL DEFAULT '',
       word_timestamps TEXT NOT NULL DEFAULT '',
+      title TEXT NOT NULL DEFAULT '',
+      tags TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       expires_at TEXT NOT NULL
     );
@@ -77,9 +79,15 @@ function migrate(db: Database.Database) {
     );
   `);
 
-  // Migration: add word_timestamps column if missing
+  // Migrations for existing DBs
   const cols = db.prepare("PRAGMA table_info(waffles)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "word_timestamps")) {
     db.exec("ALTER TABLE waffles ADD COLUMN word_timestamps TEXT NOT NULL DEFAULT ''");
+  }
+  if (!cols.some((c) => c.name === "title")) {
+    db.exec("ALTER TABLE waffles ADD COLUMN title TEXT NOT NULL DEFAULT ''");
+  }
+  if (!cols.some((c) => c.name === "tags")) {
+    db.exec("ALTER TABLE waffles ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
   }
 }

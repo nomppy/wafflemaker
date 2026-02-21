@@ -64,6 +64,8 @@ interface Waffle {
   duration_seconds: number;
   transcript: string;
   word_timestamps: string; // JSON array of WordTimestamp
+  title: string;
+  tags: string; // JSON array of strings
   reactions: Reaction[];
   created_at: string;
 }
@@ -129,6 +131,10 @@ export function PairView({
     waffleId: string;
     timestampSeconds: number;
   } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editTags, setEditTags] = useState("");
+  const [filterTag, setFilterTag] = useState<string | null>(null);
 
   useEffect(() => {
     setPrompt(getRandomPrompt());
@@ -354,6 +360,44 @@ export function PairView({
     }
   }
 
+  function parseTags(tags: string): string[] {
+    if (!tags) return [];
+    try { return JSON.parse(tags); } catch { return []; }
+  }
+
+  function startEditing(w: Waffle) {
+    setEditingId(w.id);
+    setEditTitle(w.title || "");
+    setEditTags(parseTags(w.tags).join(", "));
+  }
+
+  async function saveMetadata(waffleId: string) {
+    const tagList = editTags
+      .split(/[,\s]+/)
+      .map((t) => t.replace(/^#/, "").trim())
+      .filter(Boolean);
+    await fetch("/api/waffles", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        waffleId,
+        title: editTitle,
+        tags: JSON.stringify(tagList),
+      }),
+    });
+    setEditingId(null);
+    loadWaffles();
+  }
+
+  // Collect all unique tags for filter
+  const allTags = Array.from(
+    new Set(waffles.flatMap((w) => parseTags(w.tags)))
+  );
+
+  const filteredWaffles = filterTag
+    ? waffles.filter((w) => parseTags(w.tags).includes(filterTag))
+    : waffles;
+
   async function addReaction(waffleId: string, emoji: string, timestampSeconds: number) {
     await fetch(`/api/waffles/reactions/${waffleId}`, {
       method: "POST",
@@ -385,8 +429,37 @@ export function PairView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Waffles list */}
+      {/* Tag filter bar */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 border-b border-waffle-light/30 px-2 py-2">
+          <button
+            onClick={() => setFilterTag(null)}
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all ${
+              !filterTag
+                ? "bg-waffle text-white"
+                : "bg-butter text-waffle-dark hover:bg-butter-deep"
+            }`}
+          >
+            All
+          </button>
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all ${
+                filterTag === tag
+                  ? "bg-waffle text-white"
+                  : "bg-butter text-waffle-dark hover:bg-butter-deep"
+              }`}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto pb-4">
-        {waffles.length === 0 && !recording && (
+        {filteredWaffles.length === 0 && !recording && (
           <div className="card-cottage bg-waffle-texture p-7 text-center">
             <WaffleEmptyIcon />
             <p className="font-display mb-2 text-lg font-semibold text-syrup">
@@ -399,7 +472,7 @@ export function PairView({
             </p>
           </div>
         )}
-        {waffles.map((w) => {
+        {filteredWaffles.map((w) => {
           const isMine = w.sender_id === currentUserId;
           const isPlaying = playingId === w.id;
           const isExpanded = expandedId === w.id;
@@ -493,10 +566,42 @@ export function PairView({
                       ))}
                     </div>
                   )}
+                  {w.title && (
+                    <p className="font-display mt-1 text-xs font-semibold">{w.title}</p>
+                  )}
+                  {parseTags(w.tags).length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {parseTags(w.tags).map((tag) => (
+                        <span
+                          key={tag}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFilterTag(filterTag === tag ? null : tag);
+                          }}
+                          className="cursor-pointer rounded-full bg-waffle-light/20 px-1.5 py-0.5 text-[10px] font-semibold text-waffle hover:bg-waffle-light/40"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <p className="mt-1 text-xs opacity-70">
                     {w.sender_name} &middot; {formatDate(w.created_at)}
                   </p>
                 </div>
+                {isMine && (
+                  <button
+                    onClick={() => editingId === w.id ? setEditingId(null) : startEditing(w)}
+                    className={`rounded-lg border-2 px-2 py-1 text-[10px] font-semibold transition-all ${
+                      editingId === w.id
+                        ? "border-waffle bg-butter-deep text-syrup"
+                        : "border-waffle-light/50 bg-butter text-waffle-dark hover:border-waffle hover:bg-butter-deep"
+                    }`}
+                    aria-label="Edit waffle"
+                  >
+                    Edit
+                  </button>
+                )}
                 <button
                   onClick={() =>
                     setExpandedId(isExpanded ? null : w.id)
@@ -575,6 +680,42 @@ export function PairView({
                   ) : (
                     <span className="italic opacity-60">No transcript available</span>
                   )}
+                </div>
+              )}
+              {editingId === w.id && (
+                <div className="mt-2 w-full max-w-[280px] rounded-xl border-2 border-waffle bg-butter p-3">
+                  <label className="text-xs font-semibold text-waffle-dark">Title</label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Optional title..."
+                    className="mt-0.5 w-full rounded-lg border border-waffle-light/50 bg-cream px-2 py-1 text-sm text-waffle-dark outline-none focus:border-waffle"
+                  />
+                  <label className="mt-2 block text-xs font-semibold text-waffle-dark">
+                    Tags <span className="font-normal opacity-60">(comma-separated)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                    placeholder="cooking, travel, funny..."
+                    className="mt-0.5 w-full rounded-lg border border-waffle-light/50 bg-cream px-2 py-1 text-sm text-waffle-dark outline-none focus:border-waffle"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => saveMetadata(w.id)}
+                      className="rounded-lg bg-waffle px-3 py-1 text-xs font-semibold text-white hover:bg-syrup"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="text-xs font-semibold text-waffle-dark/50 hover:text-waffle-dark"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
