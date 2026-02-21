@@ -37,7 +37,22 @@ export async function GET(
        ORDER BY w.created_at ASC
        LIMIT 50`
     )
-    .all(pairId);
+    .all(pairId) as Record<string, unknown>[];
 
-  return NextResponse.json(waffles);
+  // Attach reactions to each waffle
+  const getReactions = db.prepare(
+    `SELECT r.id, r.user_id, r.emoji, r.timestamp_seconds, r.created_at,
+            u.display_name as user_name
+     FROM reactions r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.waffle_id = ?
+     ORDER BY r.timestamp_seconds ASC`
+  );
+
+  const wafflesWithReactions = waffles.map((w) => ({
+    ...w,
+    reactions: getReactions.all(w.id as string),
+  }));
+
+  return NextResponse.json(wafflesWithReactions);
 }

@@ -66,6 +66,15 @@ function migrate(db: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       expires_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS reactions (
+      id TEXT PRIMARY KEY,
+      waffle_id TEXT NOT NULL REFERENCES waffles(id),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      emoji TEXT NOT NULL,
+      timestamp_seconds REAL NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   // Migration: add word_timestamps column if missing

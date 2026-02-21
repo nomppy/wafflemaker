@@ -48,6 +48,15 @@ interface WordTimestamp {
   end: number;
 }
 
+interface Reaction {
+  id: string;
+  user_id: string;
+  user_name: string;
+  emoji: string;
+  timestamp_seconds: number;
+  created_at: string;
+}
+
 interface Waffle {
   id: string;
   sender_id: string;
@@ -55,8 +64,11 @@ interface Waffle {
   duration_seconds: number;
   transcript: string;
   word_timestamps: string; // JSON array of WordTimestamp
+  reactions: Reaction[];
   created_at: string;
 }
+
+const QUICK_EMOJIS = ["❤️", "😂", "🔥", "👏", "😮"];
 
 const TALK_PROMPTS = [
   "What was the highlight of your week so far?",
@@ -113,6 +125,10 @@ export function PairView({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState(TALK_PROMPTS[0]);
   const [micError, setMicError] = useState<string | null>(null);
+  const [reactionTarget, setReactionTarget] = useState<{
+    waffleId: string;
+    timestampSeconds: number;
+  } | null>(null);
 
   useEffect(() => {
     setPrompt(getRandomPrompt());
@@ -338,6 +354,16 @@ export function PairView({
     }
   }
 
+  async function addReaction(waffleId: string, emoji: string, timestampSeconds: number) {
+    await fetch(`/api/waffles/reactions/${waffleId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emoji, timestampSeconds }),
+    });
+    setReactionTarget(null);
+    loadWaffles();
+  }
+
   function formatTime(seconds: number) {
     const total = Math.floor(seconds);
     const m = Math.floor(total / 60);
@@ -406,17 +432,65 @@ export function PairView({
                     </span>
                   </button>
                   {isPlaying && (
-                    <div
-                      className="mt-2 h-1.5 cursor-pointer rounded-full bg-waffle-light/30"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        seekAudio((e.clientX - rect.left) / rect.width);
-                      }}
-                    >
+                    <div className="mt-2">
                       <div
-                        className="h-full rounded-full bg-waffle transition-[width] duration-100"
-                        style={{ width: `${progress * 100}%` }}
-                      />
+                        className="relative h-1.5 cursor-pointer rounded-full bg-waffle-light/30"
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const fraction = (e.clientX - rect.left) / rect.width;
+                          seekAudio(fraction);
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          if (playbackDuration > 0) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const fraction = (e.clientX - rect.left) / rect.width;
+                            setReactionTarget({
+                              waffleId: w.id,
+                              timestampSeconds: fraction * playbackDuration,
+                            });
+                          }
+                        }}
+                      >
+                        <div
+                          className="h-full rounded-full bg-waffle transition-[width] duration-100"
+                          style={{ width: `${progress * 100}%` }}
+                        />
+                        {/* Reaction markers on timeline */}
+                        {w.reactions.map((r) => {
+                          const pos = w.duration_seconds > 0
+                            ? (r.timestamp_seconds / w.duration_seconds) * 100
+                            : 0;
+                          return (
+                            <span
+                              key={r.id}
+                              className="absolute -top-3 text-xs"
+                              style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
+                              title={`${r.user_name}: ${r.emoji}`}
+                            >
+                              {r.emoji}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {/* Reaction badges when not playing */}
+                  {!isPlaying && w.reactions.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {Object.entries(
+                        w.reactions.reduce<Record<string, number>>((acc, r) => {
+                          acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+                          return acc;
+                        }, {})
+                      ).map(([emoji, count]) => (
+                        <span
+                          key={emoji}
+                          className="rounded-full border border-waffle-light/40 bg-butter px-1.5 py-0.5 text-xs"
+                        >
+                          {emoji}{count > 1 ? ` ${count}` : ""}
+                        </span>
+                      ))}
                     </div>
                   )}
                   <p className="mt-1 text-xs opacity-70">
@@ -452,28 +526,51 @@ export function PairView({
                           const active = isPlaying &&
                             playbackTime >= wt.start &&
                             playbackTime < wt.end;
+                          const wordReactions = w.reactions.filter(
+                            (r) => r.timestamp_seconds >= wt.start && r.timestamp_seconds < wt.end
+                          );
                           return (
-                            <span
-                              key={idx}
-                              onClick={() => {
-                                if (!isPlaying) playWaffle(w.id);
-                                // Use setTimeout to let audio load before seeking
-                                if (isPlaying) seekToTime(wt.start);
-                                else setTimeout(() => seekToTime(wt.start), 300);
-                              }}
-                              className={`cursor-pointer transition-colors ${
-                                active
-                                  ? "rounded bg-waffle/20 font-semibold text-syrup"
-                                  : "hover:text-waffle"
-                              }`}
-                            >
-                              {wt.word}{idx < wordTs.length - 1 ? " " : ""}
+                            <span key={idx} className="relative inline">
+                              <span
+                                onClick={() => {
+                                  if (!isPlaying) playWaffle(w.id);
+                                  if (isPlaying) seekToTime(wt.start);
+                                  else setTimeout(() => seekToTime(wt.start), 300);
+                                }}
+                                onContextMenu={(e) => {
+                                  e.preventDefault();
+                                  setReactionTarget({
+                                    waffleId: w.id,
+                                    timestampSeconds: (wt.start + wt.end) / 2,
+                                  });
+                                }}
+                                className={`cursor-pointer transition-colors ${
+                                  active
+                                    ? "rounded bg-waffle/20 font-semibold text-syrup"
+                                    : "hover:text-waffle"
+                                }`}
+                              >
+                                {wt.word}
+                              </span>
+                              {wordReactions.length > 0 && (
+                                <span className="relative -top-2 -mr-0.5 text-[10px]">
+                                  {wordReactions.map((r) => r.emoji).join("")}
+                                </span>
+                              )}
+                              {idx < wordTs.length - 1 ? " " : ""}
                             </span>
                           );
                         })}
                       </span>
                     ) : (
-                      w.transcript
+                      <span
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setReactionTarget({ waffleId: w.id, timestampSeconds: 0 });
+                        }}
+                      >
+                        {w.transcript}
+                      </span>
                     )
                   ) : (
                     <span className="italic opacity-60">No transcript available</span>
@@ -484,6 +581,29 @@ export function PairView({
           );
         })}
       </div>
+
+      {/* Emoji reaction picker */}
+      {reactionTarget && (
+        <div className="flex items-center justify-center gap-1 border-t border-waffle-light/30 bg-butter py-2">
+          {QUICK_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              onClick={() =>
+                addReaction(reactionTarget.waffleId, emoji, reactionTarget.timestampSeconds)
+              }
+              className="rounded-lg px-2.5 py-1.5 text-lg transition-transform hover:scale-125 active:scale-95"
+            >
+              {emoji}
+            </button>
+          ))}
+          <button
+            onClick={() => setReactionTarget(null)}
+            className="ml-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-waffle-dark/50 hover:text-waffle-dark"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Record area - sticky at bottom */}
       <div className="sticky bottom-0 mt-auto flex flex-col items-center border-t-2 border-dashed border-waffle-light/40 bg-cream pb-6 pt-5 safe-b">
