@@ -1,14 +1,14 @@
 import { test, expect, BrowserContext, Page } from "@playwright/test";
 
-test.describe("Wednesday Waffles E2E", () => {
+test.describe("Wafflemaker E2E", () => {
   test("landing page loads with informative content", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.locator("h1")).toContainText("Wednesday Waffles");
+    await expect(page.locator("h1")).toContainText("Wafflemaker");
     await expect(page.getByText("A voice message to a friend")).toBeVisible();
     await expect(page.getByRole("link", { name: "Get Started" })).toBeVisible();
 
-    await expect(page.getByText("What's a Wednesday Waffle?")).toBeVisible();
+    await expect(page.getByText("What's a Waffle?")).toBeVisible();
     await expect(page.getByText("Pair up")).toBeVisible();
     await expect(page.getByText("Record your waffle")).toBeVisible();
     await expect(page.getByText("Listen on your own time")).toBeVisible();
@@ -21,7 +21,7 @@ test.describe("Wednesday Waffles E2E", () => {
 
   test("login page renders", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByText("Sign in to Wednesday Waffles")).toBeVisible();
+    await expect(page.getByText("Sign in to Wafflemaker")).toBeVisible();
     await expect(page.getByPlaceholder("your@email.com")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Send magic link" })

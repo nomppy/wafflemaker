@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Wednesday Waffles",
+  title: "Wafflemaker",
   description: "Send a voice message to a friend every Wednesday",
   manifest: "/manifest.json",
   icons: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Waffles",
+    title: "Wafflemaker",
   },
 };
 

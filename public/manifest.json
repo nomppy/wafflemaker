@@ -1,6 +1,6 @@
 {
-  "name": "Wednesday Waffles",
-  "short_name": "Waffles",
+  "name": "Wafflemaker",
+  "short_name": "Wafflemaker",
   "description": "Send a voice message to a friend every Wednesday",
   "start_url": "/dashboard",
   "display": "standalone",

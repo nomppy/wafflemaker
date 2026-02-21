@@ -84,7 +84,7 @@ function LoginForm() {
     <div className="card-cottage w-full max-w-sm bg-waffle-texture p-8">
       <WaffleLoginIcon />
       <h2 className="font-display mb-6 text-center text-2xl font-bold text-syrup">
-        Sign in to Wednesday Waffles
+        Sign in to Wafflemaker
       </h2>
       {error && (
         <div className="mb-4 rounded-xl border-2 border-red-200 bg-red-50 p-3 text-sm text-red-700">
