@@ -123,6 +123,14 @@ export function PairView({
   const [prompt, setPrompt] = useState(TALK_PROMPTS[0]);
   const [micError, setMicError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [pendingWaffle, setPendingWaffle] = useState<{
+    blob: Blob;
+    duration: number;
+    transcript: string;
+    wordTimestamps: WordTimestamp[];
+  } | null>(null);
+  const [pendingDescription, setPendingDescription] = useState("");
 
   useEffect(() => {
     setPrompt(getRandomPrompt());
@@ -176,6 +184,7 @@ export function PairView({
 
       transcriptRef.current = "";
       wordTimestampsRef.current = [];
+      setLiveTranscript("");
       const recStart = performance.now();
       recordingStartRef.current = recStart;
       lastResultTimeRef.current = recStart;
@@ -185,14 +194,16 @@ export function PairView({
         try {
           const recognition = new SpeechRecognitionAPI();
           recognition.continuous = true;
-          recognition.interimResults = false;
+          recognition.interimResults = true;
           recognition.lang = "en-US";
           let aborted = false;
+          let interimText = "";
           recognition.onresult = (event: SpeechRecognitionEvent) => {
             const now = performance.now();
+            interimText = "";
             for (let i = event.resultIndex; i < event.results.length; i++) {
+              const text = event.results[i][0].transcript;
               if (event.results[i].isFinal) {
-                const text = event.results[i][0].transcript;
                 transcriptRef.current += text;
                 const words = text.trim().split(/\s+/).filter(Boolean);
                 if (words.length > 0) {
@@ -207,9 +218,12 @@ export function PairView({
                     });
                   }
                 }
+                lastResultTimeRef.current = now;
+              } else {
+                interimText += text;
               }
             }
-            lastResultTimeRef.current = now;
+            setLiveTranscript(transcriptRef.current + interimText);
           };
           recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
             if (event.error !== "no-speech") aborted = true;
@@ -246,10 +260,11 @@ export function PairView({
     const transcript = transcriptRef.current.trim();
     const wordTimestamps = [...wordTimestampsRef.current];
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
-      mediaRecorder.current.onstop = async () => {
+      mediaRecorder.current.onstop = () => {
         mediaRecorder.current!.stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks.current, { type: "audio/webm" });
-        await uploadWaffle(blob, duration, transcript, wordTimestamps);
+        setPendingWaffle({ blob, duration, transcript, wordTimestamps });
+        setPendingDescription("");
       };
       mediaRecorder.current.stop();
     }
@@ -257,8 +272,10 @@ export function PairView({
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
-  async function uploadWaffle(blob: Blob, duration: number, transcript: string, wordTimestamps: WordTimestamp[]) {
+  async function sendPendingWaffle() {
+    if (!pendingWaffle) return;
     setUploading(true);
+    const { blob, duration, transcript, wordTimestamps } = pendingWaffle;
     const formData = new FormData();
     formData.append("pairId", pairId);
     formData.append("audio", blob, "waffle.webm");
@@ -267,11 +284,24 @@ export function PairView({
     if (wordTimestamps.length > 0) {
       formData.append("word_timestamps", JSON.stringify(wordTimestamps));
     }
+    if (pendingDescription.trim()) {
+      formData.append("title", pendingDescription.trim());
+    }
     await fetch("/api/waffles", { method: "POST", body: formData });
+    setPendingWaffle(null);
+    setPendingDescription("");
     setUploading(false);
     setRecordingTime(0);
+    setLiveTranscript("");
     setPrompt(getRandomPrompt());
     loadWaffles();
+  }
+
+  function discardPendingWaffle() {
+    setPendingWaffle(null);
+    setPendingDescription("");
+    setRecordingTime(0);
+    setLiveTranscript("");
   }
 
   function stopPlayback() {
@@ -588,11 +618,53 @@ export function PairView({
             <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-waffle border-t-transparent" />
             <p className="font-display font-medium text-waffle-dark">Sending your waffle...</p>
           </div>
+        ) : pendingWaffle ? (
+          /* Post-recording: add description before sending */
+          <div className="w-full space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="font-display text-sm font-semibold text-syrup">
+                Your waffle ({formatTime(pendingWaffle.duration)})
+              </p>
+              <button
+                onClick={discardPendingWaffle}
+                className="text-xs font-bold text-waffle-dark/40 hover:text-red-600"
+              >
+                Discard
+              </button>
+            </div>
+            {pendingWaffle.transcript && (
+              <div className="rounded-lg bg-white/60 p-2 text-xs leading-relaxed text-waffle-dark/70">
+                {pendingWaffle.transcript}
+              </div>
+            )}
+            <textarea
+              value={pendingDescription}
+              onChange={(e) => setPendingDescription(e.target.value)}
+              placeholder="Add a description or notes about this waffle... (optional)"
+              className="w-full resize-none rounded-xl border-2 border-waffle-light/40 bg-white/50 px-3 py-2 text-sm leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle"
+              rows={3}
+              autoFocus
+            />
+            <button
+              onClick={sendPendingWaffle}
+              className="btn-retro w-full py-3 text-sm"
+            >
+              Send waffle
+            </button>
+          </div>
         ) : recording ? (
           <>
             <p className="mb-3 font-mono text-2xl font-bold text-red-600 tabular-nums">
               {formatTime(recordingTime)}
             </p>
+            {liveTranscript && (
+              <div className="mb-3 w-full rounded-lg bg-white/60 px-3 py-2 text-xs leading-relaxed text-waffle-dark/70">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-waffle/50">
+                  Live transcript
+                </p>
+                {liveTranscript}
+              </div>
+            )}
             <button
               onClick={stopRecording}
               className="btn-record btn-record-active"
@@ -600,7 +672,7 @@ export function PairView({
             >
               <span className="relative z-10 block h-7 w-7 rounded bg-white" />
             </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to stop &amp; send</p>
+            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to stop</p>
           </>
         ) : (
           <>
