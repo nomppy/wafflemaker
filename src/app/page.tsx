@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { VisitCookie } from "./visit-cookie";
 
 export const dynamic = "force-dynamic";
@@ -192,6 +194,9 @@ async function getVisits(shouldIncrement: boolean): Promise<number> {
 }
 
 export default async function Home() {
+  const user = await getCurrentUser();
+  if (user) redirect("/dashboard");
+
   const cookieStore = await cookies();
   const alreadyVisited = cookieStore.get("visited")?.value === "1";
   const visits = await getVisits(!alreadyVisited);
@@ -329,6 +334,11 @@ export default async function Home() {
         </div>
         <p className="mt-4 text-xs text-waffle-dark/40">
           Made with <HeartIcon className="inline-block w-3 text-berry" /> and maple syrup
+        </p>
+        <p className="mt-2 text-xs text-waffle-dark/30">
+          <a href="https://github.com/nomppy/wafflemaker" className="hover:text-waffle-dark/50 transition-colors">GitHub</a>
+          {" "}&bull;{" "}
+          <a href="mailto:feedback@sunken.site?subject=Wafflemaker%20Feedback" className="hover:text-waffle-dark/50 transition-colors">Feedback</a>
         </p>
         <p className="mt-1 text-xs text-waffle-dark/30">
           Best viewed with a cup of coffee in hand &bull; Est. 2026

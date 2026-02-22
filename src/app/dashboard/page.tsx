@@ -182,6 +182,11 @@ export default async function DashboardPage() {
           ))}
         </div>
       )}
+      <footer className="mt-12 border-t border-dashed border-waffle-light/40 pt-4 pb-2 text-center text-xs text-waffle-dark/30">
+        <a href="https://github.com/nomppy/wafflemaker" className="hover:text-waffle-dark/50 transition-colors">GitHub</a>
+        {" "}&bull;{" "}
+        <a href="mailto:feedback@sunken.site?subject=Wafflemaker%20Feedback" className="hover:text-waffle-dark/50 transition-colors">Feedback</a>
+      </footer>
     </main>
   );
 }
