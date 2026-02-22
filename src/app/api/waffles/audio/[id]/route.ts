@@ -37,10 +37,30 @@ export async function GET(
     return NextResponse.json({ error: "Audio not found" }, { status: 404 });
   }
 
-  return new NextResponse(audio.body, {
+  // Detect content type from the first bytes of the file
+  // Browsers record audio in different formats:
+  //   - Chrome: audio/webm (starts with 0x1A45DFA3 = EBML/WebM)
+  //   - Safari/iOS: audio/mp4 (starts with ftyp)
+  const arrayBuffer = await audio.arrayBuffer();
+  const header = new Uint8Array(arrayBuffer.slice(0, 12));
+  let contentType = "audio/webm"; // default
+
+  // Check for MP4/M4A (ftyp box at offset 4)
+  if (
+    header[4] === 0x66 && // f
+    header[5] === 0x74 && // t
+    header[6] === 0x79 && // y
+    header[7] === 0x70    // p
+  ) {
+    contentType = "audio/mp4";
+  }
+
+  return new NextResponse(arrayBuffer, {
     headers: {
-      "Content-Type": "audio/webm",
-      "Content-Length": (audio.size || 0).toString(),
+      "Content-Type": contentType,
+      "Content-Length": arrayBuffer.byteLength.toString(),
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "private, max-age=3600",
     },
   });
 }
