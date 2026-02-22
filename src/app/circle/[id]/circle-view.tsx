@@ -120,7 +120,8 @@ export function CircleView({
     if (!persistentAudioRef.current) {
       const el = document.createElement("audio");
       el.setAttribute("playsinline", "");
-      el.preload = "auto";
+      el.setAttribute("webkit-playsinline", "");
+      el.preload = "metadata";
       el.style.display = "none";
       document.body.appendChild(el);
       persistentAudioRef.current = el;
@@ -155,11 +156,17 @@ export function CircleView({
     audio.pause();
     audio.src = `/api/waffles/audio/${id}`;
     audio.onended = () => stopPlayback();
-    audio.onerror = () => stopPlayback();
+    audio.onerror = (e) => {
+      console.error("Audio error:", audio.error?.code, audio.error?.message, e);
+      stopPlayback();
+    };
     audio.ontimeupdate = () => setPlaybackTime(audio.currentTime);
     audio.onloadedmetadata = () => setPlaybackDuration(audio.duration);
     audio.load();
-    audio.play().catch(() => stopPlayback());
+    audio.play().catch((err) => {
+      console.error("Play failed:", err);
+      stopPlayback();
+    });
     audioRef.current = audio;
     setPlayingId(id); setPlaybackTime(0);
   }
