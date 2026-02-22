@@ -257,17 +257,20 @@ export function PairView({
 
   async function stopRecording() {
     const duration = recordingTime;
+    // Stop speech recognition — this triggers the final onresult
     if (recognitionRef.current) {
       recognitionRef.current.onend = null;
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
-    const transcript = transcriptRef.current.trim();
-    const wordTimestamps = [...wordTimestampsRef.current];
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
       mediaRecorder.current.onstop = () => {
         mediaRecorder.current!.stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks.current, { type: mediaRecorder.current?.mimeType || "audio/webm" });
+        // Capture transcript AFTER MediaRecorder stops — by this point
+        // the final speech recognition result has arrived via onresult
+        const transcript = transcriptRef.current.trim();
+        const wordTimestamps = [...wordTimestampsRef.current];
         setPendingWaffle({ blob, duration, transcript, wordTimestamps });
         setPendingDescription("");
       };
@@ -473,7 +476,11 @@ export function PairView({
                 } ${isExpanded ? "ring-2 ring-waffle-light ring-offset-2" : ""}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{isPlaying ? "⏸" : "▶"}</span>
+                  {isPlaying ? (
+                    <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+                  ) : (
+                    <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current"><path d="M4 2.5v11l9-5.5z"/></svg>
+                  )}
                   <span className="font-display text-sm font-semibold">
                     {formatTime(w.duration_seconds)}
                   </span>
@@ -505,7 +512,11 @@ export function PairView({
                         onClick={(e) => { e.stopPropagation(); playWaffle(w.id); }}
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-waffle text-white"
                       >
-                        <span className="text-sm">{isPlaying ? "⏸" : "▶"}</span>
+                        {isPlaying ? (
+                          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 fill-current"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+                        ) : (
+                          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 fill-current"><path d="M4 2.5v11l9-5.5z"/></svg>
+                        )}
                       </button>
                       <div className="flex-1">
                         <div

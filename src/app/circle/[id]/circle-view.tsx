@@ -263,7 +263,11 @@ export function CircleView({
                 } ${isExpanded ? "ring-2 ring-waffle-light ring-offset-2" : ""}`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{isPlaying ? "⏸" : "▶"}</span>
+                  {isPlaying ? (
+                    <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+                  ) : (
+                    <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current"><path d="M4 2.5v11l9-5.5z"/></svg>
+                  )}
                   <span className="font-display text-sm font-semibold">{formatTime(w.duration_seconds)}</span>
                   {w.comments.length > 0 && (
                     <span className="rounded-full bg-waffle-light/30 px-1.5 py-0.5 text-[10px] font-semibold text-waffle-dark/70">
@@ -285,7 +289,11 @@ export function CircleView({
                       onClick={(e) => { e.stopPropagation(); playWaffle(w.id); }}
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-waffle text-white"
                     >
-                      <span className="text-sm">{isPlaying ? "⏸" : "▶"}</span>
+                      {isPlaying ? (
+                          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 fill-current"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+                        ) : (
+                          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 fill-current"><path d="M4 2.5v11l9-5.5z"/></svg>
+                        )}
                     </button>
                     <div className="flex-1">
                       <div
