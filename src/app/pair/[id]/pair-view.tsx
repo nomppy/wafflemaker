@@ -168,7 +168,12 @@ export function PairView({
     setMicError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       chunks.current = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.current.push(e.data);
@@ -262,7 +267,7 @@ export function PairView({
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
       mediaRecorder.current.onstop = () => {
         mediaRecorder.current!.stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunks.current, { type: "audio/webm" });
+        const blob = new Blob(chunks.current, { type: mediaRecorder.current?.mimeType || "audio/webm" });
         setPendingWaffle({ blob, duration, transcript, wordTimestamps });
         setPendingDescription("");
       };
