@@ -317,7 +317,8 @@ export function PairView({
     if (!persistentAudioRef.current) {
       const el = document.createElement("audio");
       el.setAttribute("playsinline", "");
-      el.preload = "auto";
+      el.setAttribute("webkit-playsinline", "");
+      el.preload = "metadata";
       el.style.display = "none";
       document.body.appendChild(el);
       persistentAudioRef.current = el;
@@ -551,7 +552,7 @@ export function PairView({
                   ) : null}
 
                   {/* Transcript */}
-                  {w.transcript && (
+                  {w.transcript ? (
                     <div className="mb-3 rounded-lg bg-white/40 p-2 text-xs leading-relaxed text-waffle-dark/80">
                       {wordTs.length > 0 ? (
                         <span>
@@ -582,6 +583,10 @@ export function PairView({
                         w.transcript
                       )}
                     </div>
+                  ) : (
+                    <p className="mb-3 text-[11px] italic text-waffle-dark/40">
+                      No transcript available
+                    </p>
                   )}
 
                   {/* Timed comments thread */}
