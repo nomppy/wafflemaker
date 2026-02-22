@@ -114,19 +114,51 @@ export function CircleView({
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
+  const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  function getAudioElement(): HTMLAudioElement {
+    if (!persistentAudioRef.current) {
+      const el = document.createElement("audio");
+      el.setAttribute("playsinline", "");
+      el.preload = "auto";
+      el.style.display = "none";
+      document.body.appendChild(el);
+      persistentAudioRef.current = el;
+    }
+    return persistentAudioRef.current;
+  }
+
+  useEffect(() => {
+    return () => {
+      if (persistentAudioRef.current) {
+        persistentAudioRef.current.pause();
+        persistentAudioRef.current.remove();
+        persistentAudioRef.current = null;
+      }
+    };
+  }, []);
+
   function stopPlayback() {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    const audio = persistentAudioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+    }
+    audioRef.current = null;
     setPlayingId(null); setPlaybackTime(0); setPlaybackDuration(0);
   }
 
   function playWaffle(id: string) {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     if (playingId === id) { stopPlayback(); return; }
-    const audio = new Audio(`/api/waffles/audio/${id}`);
+    const audio = getAudioElement();
+    audio.pause();
+    audio.src = `/api/waffles/audio/${id}`;
     audio.onended = () => stopPlayback();
     audio.onerror = () => stopPlayback();
     audio.ontimeupdate = () => setPlaybackTime(audio.currentTime);
     audio.onloadedmetadata = () => setPlaybackDuration(audio.duration);
+    audio.load();
     audio.play().catch(() => stopPlayback());
     audioRef.current = audio;
     setPlayingId(id); setPlaybackTime(0);
