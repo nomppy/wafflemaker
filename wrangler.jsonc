@@ -24,6 +24,9 @@
     }
   ],
   "vars": {
-    "NEXT_PUBLIC_URL": "https://waffle.sunken.site"
+    "NEXT_PUBLIC_URL": "https://waffle.sunken.site",
+    "VAPID_PUBLIC_KEY": "BH9-G6WLnLXt2qgMxe6Aj-Ma28vciVFmNnSz3xRyKwKUt8aVgHh0vQcQ3I_wqIafDUc6saVHz3bf6QmgkK8At78",
+    "VAPID_PRIVATE_KEY": "{\"key_ops\":[\"sign\"],\"ext\":true,\"kty\":\"EC\",\"x\":\"f34bpYucte3aqAzF7oCP4xrby9yJUWY2dLPfFHIrApQ\",\"y\":\"t8aVgHh0vQcQ3I_wqIafDUc6saVHz3bf6QmgkK8At78\",\"crv\":\"P-256\",\"d\":\"0J7fadeiaL4yT_Zm-REnxYA3BEs-CoU9m0C-3u1AKd4\"}",
+    "VAPID_SUBJECT": "mailto:feedback@sunken.site"
   }
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SwRegister } from "@/components/sw-register";
 
 export const metadata: Metadata = {
   title: "Wafflemaker",
@@ -58,6 +59,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-gingham text-syrup antialiased">
+        <SwRegister />
         {children}
       </body>
     </html>

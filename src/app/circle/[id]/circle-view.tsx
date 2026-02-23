@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { WaffleRecorder } from "@/components/waffle-recorder";
+import { exportSingleWaffle, exportAllWaffles, DownloadButton, ExportAllButton } from "@/components/waffle-export";
 
 interface Comment {
   id: string;
@@ -341,6 +342,9 @@ export function CircleView({
             + Invite
           </button>
         )}
+        {waffles.length > 0 && (
+          <ExportAllButton onClick={() => exportAllWaffles(waffles, "circle")} />
+        )}
         {showLeave ? (
           <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-1">
             <span className="text-[11px] text-red-700">Leave circle?</span>
@@ -437,6 +441,11 @@ export function CircleView({
                         <span>{formatTime(isPlaying && playbackDuration ? playbackDuration : w.duration_seconds)}</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Download button */}
+                  <div className="mb-2 flex justify-end">
+                    <DownloadButton onClick={() => exportSingleWaffle(w)} />
                   </div>
 
                   {w.transcript && (

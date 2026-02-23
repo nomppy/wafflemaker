@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, generateId } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { sendNotificationToUser } from "@/lib/web-push";
 
 export async function POST(
   req: NextRequest,
@@ -48,6 +49,40 @@ export async function POST(
     )
     .bind(id, waffleId, user.id, text.trim(), timestampSeconds)
     .run();
+
+  // Notify waffle sender about the comment (fire-and-forget)
+  try {
+    const waffleInfo = await db
+      .prepare("SELECT sender_id, pair_id, circle_id FROM waffles WHERE id = ?")
+      .bind(waffleId)
+      .first<{ sender_id: string; pair_id: string | null; circle_id: string | null }>();
+    if (waffleInfo && waffleInfo.sender_id !== user.id) {
+      const setting = await db
+        .prepare(
+          `SELECT comments FROM notification_settings
+           WHERE user_id = ? AND (
+             (target_type = 'global' AND target_id IS NULL)
+             OR (target_type = 'pair' AND target_id = ?)
+             OR (target_type = 'circle' AND target_id = ?)
+           )
+           ORDER BY CASE WHEN target_id IS NOT NULL THEN 0 ELSE 1 END LIMIT 1`
+        )
+        .bind(waffleInfo.sender_id, waffleInfo.pair_id, waffleInfo.circle_id)
+        .first<{ comments: number }>();
+      if (!setting || setting.comments) {
+        const url = waffleInfo.pair_id
+          ? `/pair/${waffleInfo.pair_id}`
+          : `/circle/${waffleInfo.circle_id}`;
+        sendNotificationToUser(waffleInfo.sender_id, {
+          title: "New Comment",
+          body: `${user.display_name} commented on your waffle`,
+          url,
+        });
+      }
+    }
+  } catch {
+    // Push notification failures should not block the response
+  }
 
   return NextResponse.json({ id, ok: true });
 }

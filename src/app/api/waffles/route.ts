@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, generateId } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { saveAudio } from "@/lib/storage";
+import { sendNotificationToUser } from "@/lib/web-push";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -66,6 +67,65 @@ export async function POST(req: NextRequest) {
     )
     .bind(id, pairId, circleId, user.id, storageKey, duration, transcript, wordTimestamps, title, expiresAt)
     .run();
+
+  // Send push notifications to other members (fire-and-forget)
+  try {
+    if (pairId) {
+      const pair = await db
+        .prepare("SELECT user_a_id, user_b_id FROM pairs WHERE id = ?")
+        .bind(pairId)
+        .first<{ user_a_id: string; user_b_id: string }>();
+      if (pair) {
+        const recipientId = pair.user_a_id === user.id ? pair.user_b_id : pair.user_a_id;
+        // Check notification settings
+        const setting = await db
+          .prepare(
+            `SELECT new_waffle FROM notification_settings
+             WHERE user_id = ? AND ((target_type = 'pair' AND target_id = ?) OR (target_type = 'global' AND target_id IS NULL))
+             ORDER BY CASE WHEN target_id IS NOT NULL THEN 0 ELSE 1 END LIMIT 1`
+          )
+          .bind(recipientId, pairId)
+          .first<{ new_waffle: number }>();
+        // Default to enabled if no setting exists
+        if (!setting || setting.new_waffle) {
+          sendNotificationToUser(recipientId, {
+            title: "New Waffle!",
+            body: `${user.display_name} sent you a waffle`,
+            url: `/pair/${pairId}`,
+          });
+        }
+      }
+    }
+    if (circleId) {
+      const { results: circleMembers } = await db
+        .prepare("SELECT user_id FROM circle_members WHERE circle_id = ? AND user_id != ?")
+        .bind(circleId, user.id)
+        .all<{ user_id: string }>();
+      const circleName = await db
+        .prepare("SELECT name FROM circles WHERE id = ?")
+        .bind(circleId)
+        .first<{ name: string }>();
+      for (const member of circleMembers) {
+        const setting = await db
+          .prepare(
+            `SELECT new_waffle FROM notification_settings
+             WHERE user_id = ? AND ((target_type = 'circle' AND target_id = ?) OR (target_type = 'global' AND target_id IS NULL))
+             ORDER BY CASE WHEN target_id IS NOT NULL THEN 0 ELSE 1 END LIMIT 1`
+          )
+          .bind(member.user_id, circleId)
+          .first<{ new_waffle: number }>();
+        if (!setting || setting.new_waffle) {
+          sendNotificationToUser(member.user_id, {
+            title: `New Waffle in ${circleName?.name || "circle"}`,
+            body: `${user.display_name} posted a waffle`,
+            url: `/circle/${circleId}`,
+          });
+        }
+      }
+    }
+  } catch {
+    // Push notification failures should not block the response
+  }
 
   return NextResponse.json({ id, ok: true });
 }

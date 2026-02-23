@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { WaffleRecorder } from "@/components/waffle-recorder";
+import { exportSingleWaffle, exportAllWaffles, DownloadButton, ExportAllButton } from "@/components/waffle-export";
 
 interface SpeechRecognitionResult {
   readonly isFinal: boolean;
@@ -445,7 +446,10 @@ export function PairView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Settings bar */}
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-end gap-3">
+        {waffles.length > 0 && (
+          <ExportAllButton onClick={() => exportAllWaffles(waffles, "pair")} />
+        )}
         {showUnpair ? (
           <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
             <span className="text-xs text-red-700">Remove this pair?</span>
@@ -647,6 +651,11 @@ export function PairView({
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Download button */}
+                  <div className="mb-2 flex justify-end">
+                    <DownloadButton onClick={() => exportSingleWaffle(w)} />
                   </div>
 
                   {/* Description (editable for own waffles) */}

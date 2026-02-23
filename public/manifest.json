@@ -1,11 +1,11 @@
 {
   "name": "Wafflemaker",
   "short_name": "Wafflemaker",
-  "description": "Send a voice message to a friend every Wednesday",
+  "description": "Async voice pen-pal app",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#fffbeb",
-  "theme_color": "#d97706",
+  "background_color": "#FFF8F0",
+  "theme_color": "#C4956A",
   "icons": [
     {
       "src": "/icon-192.png",
