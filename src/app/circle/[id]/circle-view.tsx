@@ -47,6 +47,7 @@ export function CircleView({
   const [copied, setCopied] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [showTranscriptId, setShowTranscriptId] = useState<string | null>(null);
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -278,6 +279,17 @@ export function CircleView({
                 {w.title && <p className="mt-1 text-xs font-medium opacity-80">{w.title}</p>}
                 <p className="mt-1 text-xs font-semibold opacity-80">{w.sender_name}</p>
                 <p className="text-xs opacity-60">{formatDate(w.created_at)}</p>
+                {w.transcript && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowTranscriptId(showTranscriptId === w.id ? null : w.id); }}
+                    className="mt-1.5 text-[11px] font-semibold text-waffle/70 hover:text-waffle transition-colors"
+                  >
+                    {showTranscriptId === w.id ? "Hide Transcript" : "View Transcript"}
+                  </button>
+                )}
+                {showTranscriptId === w.id && w.transcript && (
+                  <p className="mt-1.5 text-[11px] leading-relaxed opacity-75">{w.transcript}</p>
+                )}
               </div>
 
               {isExpanded && (
