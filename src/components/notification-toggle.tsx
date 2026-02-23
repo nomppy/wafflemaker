@@ -101,7 +101,7 @@ export function InlineNotificationSettings({
         className="text-[11px] font-semibold text-waffle-dark/30 hover:text-waffle transition-colors"
         title="Notification settings"
       >
-        🔔
+        Notifications
       </button>
     );
   }
