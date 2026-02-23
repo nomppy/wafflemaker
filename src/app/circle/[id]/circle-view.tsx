@@ -27,6 +27,44 @@ interface Member {
   email: string;
 }
 
+function TranscriptEditor({ waffleId, initial, onSave }: { waffleId: string; initial: string; onSave: () => void }) {
+  const [text, setText] = useState(initial);
+  const [saving, setSaving] = useState(false);
+  const dirty = text !== initial;
+
+  async function save() {
+    setSaving(true);
+    await fetch(`/api/waffles/transcript/${waffleId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: text }),
+    });
+    setSaving(false);
+    onSave();
+  }
+
+  return (
+    <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        className="w-full rounded-lg border border-waffle-light/40 bg-white/50 px-2 py-1.5 text-[11px] leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle resize-none"
+        rows={3}
+      />
+      {dirty && (
+        <div className="mt-1 flex gap-1.5">
+          <button onClick={save} disabled={saving} className="rounded-md bg-waffle px-2 py-0.5 text-[10px] font-semibold text-white disabled:opacity-50">
+            {saving ? "Saving..." : "Save"}
+          </button>
+          <button onClick={() => setText(initial)} className="rounded-md bg-waffle-light/30 px-2 py-0.5 text-[10px] font-semibold text-waffle-dark/60">
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CircleView({
   circleId,
   currentUserId,
@@ -284,11 +322,15 @@ export function CircleView({
                     onClick={(e) => { e.stopPropagation(); setShowTranscriptId(showTranscriptId === w.id ? null : w.id); }}
                     className="mt-1.5 text-[11px] font-semibold text-waffle/70 hover:text-waffle transition-colors"
                   >
-                    {showTranscriptId === w.id ? "Hide Transcript" : "View Transcript"}
+                    {showTranscriptId === w.id ? "Hide Transcript" : isMine ? "View/Edit Transcript" : "View Transcript"}
                   </button>
                 )}
                 {showTranscriptId === w.id && w.transcript && (
-                  <p className="mt-1.5 text-[11px] leading-relaxed opacity-75">{w.transcript}</p>
+                  isMine ? (
+                    <TranscriptEditor waffleId={w.id} initial={w.transcript} onSave={loadData} />
+                  ) : (
+                    <p className="mt-1.5 text-[11px] leading-relaxed opacity-75">{w.transcript}</p>
+                  )
                 )}
               </div>
 
