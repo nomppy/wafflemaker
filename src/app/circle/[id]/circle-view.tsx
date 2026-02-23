@@ -92,6 +92,7 @@ export function CircleView({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const transcriptRef = useRef<string>("");
+  const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const loadData = useCallback(async () => {
@@ -126,15 +127,45 @@ export function CircleView({
       setRecordingTime(0);
       transcriptRef.current = "";
       timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
+
+      // Start speech recognition for live transcript
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+        recognition.onresult = (event: any) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              const text = event.results[i][0].transcript.trim();
+              if (text) {
+                transcriptRef.current += (transcriptRef.current ? " " : "") + text;
+              }
+            }
+          }
+        };
+        recognition.onerror = () => {}; // Silently ignore — transcript is best-effort
+        recognition.onend = () => {
+          // Restart if still recording (browser stops after silence)
+          if (mediaRecorder.current?.state === "recording") {
+            try { recognition.start(); } catch {}
+          }
+        };
+        try { recognition.start(); } catch {}
+        recognitionRef.current = recognition;
+      }
     } catch { setMicError("Could not access your microphone."); }
   }
 
   async function stopRecording() {
     const duration = recordingTime;
-    const transcript = transcriptRef.current.trim();
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
       mediaRecorder.current.onstop = async () => {
         mediaRecorder.current!.stream.getTracks().forEach((t) => t.stop());
+        // Small delay to let final speech recognition results land
+        await new Promise((r) => setTimeout(r, 300));
+        const transcript = transcriptRef.current.trim();
         const blob = new Blob(chunks.current, { type: mediaRecorder.current?.mimeType || "audio/webm" });
         setUploading(true);
         const formData = new FormData();
@@ -151,6 +182,10 @@ export function CircleView({
     }
     setRecording(false);
     if (timerRef.current) clearInterval(timerRef.current);
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+      recognitionRef.current = null;
+    }
   }
 
   const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
