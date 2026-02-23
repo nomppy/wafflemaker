@@ -1,6 +1,43 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser, generateId } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const { code } = await params;
+  const db = getDb();
+  const invite = await db
+    .prepare(
+      "SELECT u.display_name FROM invites i JOIN users u ON u.id = i.from_user_id WHERE i.code = ?"
+    )
+    .bind(code)
+    .first<{ display_name: string }>();
+
+  const name = invite?.display_name || "Someone";
+
+  return {
+    title: `${name} invited you to Wafflemaker`,
+    description:
+      "Async voice pen-pals. Accept this invite to start your waffle exchange!",
+    openGraph: {
+      title: `${name} invited you to Wafflemaker`,
+      description:
+        "Record a waffle, send it to a friend, and hear back on Wednesday.",
+      type: "website",
+      siteName: "Wafflemaker",
+    },
+    twitter: {
+      card: "summary",
+      title: `${name} invited you to Wafflemaker`,
+      description:
+        "Async voice pen-pals — send voice waffles to friends every week.",
+    },
+  };
+}
 
 export default async function InvitePage({
   params,

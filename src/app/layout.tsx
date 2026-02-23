@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Wafflemaker",
-  description: "Send a voice message to a friend every Wednesday",
+  description:
+    "Async voice pen-pals. Record a waffle, send it to a friend, and hear back on Wednesday.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
@@ -13,6 +14,19 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Wafflemaker",
+  },
+  openGraph: {
+    title: "Wafflemaker",
+    description:
+      "Async voice pen-pals. Record a waffle, send it to a friend, and hear back on Wednesday.",
+    type: "website",
+    siteName: "Wafflemaker",
+  },
+  twitter: {
+    card: "summary",
+    title: "Wafflemaker",
+    description:
+      "Async voice pen-pals. Send voice waffles to friends every week.",
   },
 };
 
