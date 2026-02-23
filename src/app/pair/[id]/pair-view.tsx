@@ -127,6 +127,8 @@ export function PairView({
   const [showTranscriptId, setShowTranscriptId] = useState<string | null>(null);
   const [editingTranscript, setEditingTranscript] = useState("");
   const [savingTranscript, setSavingTranscript] = useState(false);
+  const [showUnpair, setShowUnpair] = useState(false);
+  const [unpairing, setUnpairing] = useState(false);
   const [pendingWaffle, setPendingWaffle] = useState<{
     blob: Blob;
     duration: number;
@@ -433,8 +435,42 @@ export function PairView({
     });
   }
 
+  async function handleUnpair() {
+    setUnpairing(true);
+    await fetch(`/api/pairs/${pairId}/unpair`, { method: "POST" });
+    window.location.href = "/dashboard";
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* Settings bar */}
+      <div className="mb-3 flex justify-end">
+        {showUnpair ? (
+          <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+            <span className="text-xs text-red-700">Remove this pair?</span>
+            <button
+              onClick={handleUnpair}
+              disabled={unpairing}
+              className="rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white disabled:opacity-50"
+            >
+              {unpairing ? "Removing..." : "Yes, unpair"}
+            </button>
+            <button
+              onClick={() => setShowUnpair(false)}
+              className="text-[10px] font-semibold text-red-400 hover:text-red-600"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowUnpair(true)}
+            className="text-[11px] font-semibold text-waffle-dark/30 hover:text-red-500 transition-colors"
+          >
+            Unpair
+          </button>
+        )}
+      </div>
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pb-4">
         {waffles.length === 0 && !recording && (
           <div className="card-cottage bg-waffle-texture p-7 text-center">

@@ -88,6 +88,8 @@ export function CircleView({
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
   const [pendingDuration, setPendingDuration] = useState(0);
   const [pendingTranscript, setPendingTranscript] = useState("");
+  const [showLeave, setShowLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [showTranscriptId, setShowTranscriptId] = useState<string | null>(null);
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -313,6 +315,12 @@ export function CircleView({
     });
   }
 
+  async function handleLeave() {
+    setLeaving(true);
+    await fetch(`/api/circles/${circleId}/leave`, { method: "POST" });
+    window.location.href = "/dashboard";
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Members bar */}
@@ -330,6 +338,19 @@ export function CircleView({
         ) : (
           <button onClick={createInvite} className="rounded-full bg-butter-deep px-2 py-0.5 text-xs font-semibold text-syrup">
             + Invite
+          </button>
+        )}
+        {showLeave ? (
+          <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-1">
+            <span className="text-[11px] text-red-700">Leave circle?</span>
+            <button onClick={handleLeave} disabled={leaving} className="rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white disabled:opacity-50">
+              {leaving ? "Leaving..." : "Yes"}
+            </button>
+            <button onClick={() => setShowLeave(false)} className="text-[10px] font-semibold text-red-400">Cancel</button>
+          </div>
+        ) : (
+          <button onClick={() => setShowLeave(true)} className="text-[11px] font-semibold text-waffle-dark/30 hover:text-red-500 transition-colors">
+            Leave
           </button>
         )}
       </div>
