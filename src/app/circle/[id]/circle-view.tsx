@@ -85,6 +85,9 @@ export function CircleView({
   const [copied, setCopied] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [pendingDuration, setPendingDuration] = useState(0);
+  const [pendingTranscript, setPendingTranscript] = useState("");
   const [showTranscriptId, setShowTranscriptId] = useState<string | null>(null);
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -167,16 +170,10 @@ export function CircleView({
         await new Promise((r) => setTimeout(r, 300));
         const transcript = transcriptRef.current.trim();
         const blob = new Blob(chunks.current, { type: mediaRecorder.current?.mimeType || "audio/webm" });
-        setUploading(true);
-        const formData = new FormData();
-        formData.append("circleId", circleId);
-        formData.append("audio", blob, "waffle.webm");
-        formData.append("duration", String(duration));
-        formData.append("transcript", transcript);
-        await fetch("/api/waffles", { method: "POST", body: formData });
-        setUploading(false);
+        setPendingBlob(blob);
+        setPendingDuration(duration);
+        setPendingTranscript(transcript);
         setRecordingTime(0);
-        loadData();
       };
       mediaRecorder.current.stop();
     }
@@ -186,6 +183,28 @@ export function CircleView({
       try { recognitionRef.current.stop(); } catch {}
       recognitionRef.current = null;
     }
+  }
+
+  async function sendPendingWaffle() {
+    if (!pendingBlob) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("circleId", circleId);
+    formData.append("audio", pendingBlob, "waffle.webm");
+    formData.append("duration", String(pendingDuration));
+    formData.append("transcript", pendingTranscript);
+    await fetch("/api/waffles", { method: "POST", body: formData });
+    setUploading(false);
+    setPendingBlob(null);
+    setPendingTranscript("");
+    setPendingDuration(0);
+    loadData();
+  }
+
+  function discardPending() {
+    setPendingBlob(null);
+    setPendingTranscript("");
+    setPendingDuration(0);
   }
 
   const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -446,13 +465,39 @@ export function CircleView({
             <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-waffle border-t-transparent" />
             <p className="font-display font-medium text-waffle-dark">Sending your waffle...</p>
           </div>
+        ) : pendingBlob ? (
+          <div className="w-full max-w-sm space-y-3">
+            <p className="font-display text-center text-sm font-semibold text-syrup">Review your waffle</p>
+            <div className="flex items-center justify-center gap-2 text-sm text-waffle-dark/70">
+              <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current"><path d="M4 2.5v11l9-5.5z"/></svg>
+              <span className="font-mono">{formatTime(pendingDuration)}</span>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-waffle-dark/60">Transcript</label>
+              <textarea
+                value={pendingTranscript}
+                onChange={(e) => setPendingTranscript(e.target.value)}
+                placeholder="No transcript captured — type one manually if you'd like"
+                className="w-full rounded-lg border border-waffle-light/40 bg-white/50 px-3 py-2 text-xs leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={discardPending} className="flex-1 rounded-xl border-2 border-waffle-light/40 bg-white/50 py-2.5 text-sm font-semibold text-waffle-dark/60 transition-colors hover:bg-white/80">
+                Discard
+              </button>
+              <button onClick={sendPendingWaffle} className="flex-1 rounded-xl bg-waffle py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-waffle-dark">
+                Send Waffle 🧇
+              </button>
+            </div>
+          </div>
         ) : recording ? (
           <>
             <p className="mb-3 font-mono text-2xl font-bold text-red-600 tabular-nums">{formatTime(recordingTime)}</p>
             <button onClick={stopRecording} className="btn-record btn-record-active" aria-label="Stop recording">
               <span className="relative z-10 block h-7 w-7 rounded bg-white" />
             </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to stop &amp; send</p>
+            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to stop recording</p>
           </>
         ) : (
           <>

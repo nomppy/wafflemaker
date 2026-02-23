@@ -23,7 +23,7 @@ export async function PUT(
   const waffle = await db
     .prepare("SELECT sender_id FROM waffles WHERE id = ?")
     .bind(waffleId)
-    .first();
+    .first<{ sender_id: string }>();
 
   if (!waffle) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
