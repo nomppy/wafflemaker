@@ -81,17 +81,7 @@ export function SettingsView({
   }
 
   const updateSetting = useCallback(async (targetType: string, targetId: string | null, newWaffle: boolean, comments: boolean) => {
-    await fetch("/api/settings/notifications", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        target_type: targetType,
-        target_id: targetId,
-        new_waffle: newWaffle,
-        comments,
-      }),
-    });
-    // Update local state
+    // Optimistic update FIRST
     setSettings((prev) => {
       const existing = prev.findIndex(
         (s) => s.target_type === targetType && s.target_id === targetId
@@ -108,6 +98,17 @@ export function SettingsView({
         return copy;
       }
       return [...prev, entry];
+    });
+    // Fire-and-forget to server
+    fetch("/api/settings/notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        target_type: targetType,
+        target_id: targetId,
+        new_waffle: newWaffle,
+        comments,
+      }),
     });
   }, []);
 

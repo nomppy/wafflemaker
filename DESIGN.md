@@ -1,38 +1,54 @@
-# Wafflemaker Design Guidelines
+# Wafflemaker Design Doc
 
-## Visual Style
-- Cottagecore aesthetic: warm tones, gingham backgrounds, dashed borders
-- Font: display (Fredoka) for headings, system for body
-- Colors: waffle (golden), syrup (dark brown), cream, butter
-- Cards: `card-cottage` class with dashed borders
-- Buttons: `btn-retro` for primary actions
-
-## UI Principles
-- **No emoji for functional UI elements** — use text labels instead (e.g., "Notifications" not 🔔)
-- Emoji are fine in content/user-facing copy where they add warmth (e.g., "Send waffle 🧇" button text)
-- Keep actions discoverable — use text buttons, not icon-only
-- Toggles for settings, not checkboxes
-- Inline settings where possible (per-pair/circle) instead of forcing users to a separate page
-- Confirmation dialogs for destructive actions (unpair, leave circle)
+## Visual Language
+- Cottagecore / warm / gingham background
+- Fonts: Fredoka (display), system sans (body)
+- Colors: waffle (#C4956A), syrup (dark brown), cream, butter
+- No emoji in UI buttons or labels — use plain text
 
 ## Notifications
-- Push via Web Push API (works on iOS 16.4+ when added to Home Screen)
-- Dashboard shows a hint if push not enabled
-- Per-pair/circle notification overrides accessible inline from the conversation
-- Notification content: plain text, no emoji in titles
+- Push via Web Push API (W3C standard, works on iOS 16.4+ PWA)
+- Notification text should be plain and clear, no emoji in notification payloads
+- Button labels: "Notifications" not "🔔"
+- Users must enable push notifications globally first (via Settings or dashboard prompt)
+- Per-pair and per-circle overrides available inline in the conversation view
+- Dashboard should hint if notifications aren't enabled yet
 
-## Strict Mode
-- Wednesday-only waffle sending
-- Requires ALL members to opt in — any single member can disable
-- Enforced server-side (UTC Wednesday check)
-- Clearly shows opt-in status (X/Y opted in)
+## Strict Mode (Wednesday-only)
+- Pairs or circles can opt into "strict mode" — waffles can only be sent on Wednesdays (local time)
+- **Consensus-based**: 
+  - Enabling: all members must opt in for it to activate
+  - Disabling: ALL members must agree to disable — one person can't unilaterally turn it off
+- Show each member's vote status (opted in / not yet)
+- When active, the record button is disabled on non-Wednesdays with a friendly message
+- This reinforces the weekly cadence that makes Wafflemaker special
+
+## Audio
+- MediaRecorder with MIME detection (webm → mp4 fallback for Safari)
+- Persistent DOM `<audio>` element for iOS Safari compatibility
+- HTTP 206 range requests for mobile playback
+- 5MB upload limit
+- Voice messages kept for 7 days, transcripts saved forever
+
+## Transcripts
+- Web Speech API for live transcription during recording
+- Editable before sending (review screen)
+- Editable after sending (sender only, via View/Edit Transcript)
+- Word timestamps for karaoke-style highlighting during playback
+- Manual typing fallback if speech recognition doesn't capture
 
 ## Data Export
 - Client-side zip creation (JSZip) — no server compute overhead
-- Export includes: audio files + metadata.json (transcript, comments, timestamps)
-- Available per-waffle and per-conversation
+- Single waffle: audio + metadata.json
+- Bulk export: all waffles in a pair/circle with index.json
+- Export button in pair/circle header
 
-## Platform
-- Next.js on Cloudflare Workers + D1 + R2
-- PWA: installable, standalone mode, service worker for push
-- Auth: magic link + GitHub OAuth + Google OAuth
+## Auth
+- Magic link (email) + GitHub OAuth + Google OAuth
+- Custom implementation on CF Workers/D1 (no Supabase)
+- Dev mode: magic link URL returned in API response when no RESEND_API_KEY
+
+## Infrastructure
+- Cloudflare Workers + D1 (SQLite) + R2 (audio storage)
+- Domain: waffle.sunken.site
+- VAPID keys for push in wrangler.jsonc secrets

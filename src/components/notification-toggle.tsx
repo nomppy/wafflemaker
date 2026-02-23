@@ -78,10 +78,9 @@ export function InlineNotificationSettings({
     if (expanded && !setting) load();
   }, [expanded, setting, load]);
 
-  async function update(newWaffle: boolean, comments: boolean) {
-    setLoading(true);
+  function update(newWaffle: boolean, comments: boolean) {
     setSetting({ new_waffle: newWaffle ? 1 : 0, comments: comments ? 1 : 0 });
-    await fetch("/api/settings/notifications", {
+    fetch("/api/settings/notifications", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -91,7 +90,6 @@ export function InlineNotificationSettings({
         comments,
       }),
     });
-    setLoading(false);
   }
 
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
