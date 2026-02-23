@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import Link from "next/link";
+import { PushHint } from "./push-hint";
 import { InviteButton } from "./invite-button";
 import { CreateCircleButton } from "./create-circle-button";
 import { LogoutButton } from "./logout-button";
@@ -113,6 +114,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      <PushHint />
       <InviteButton />
       <CreateCircleButton />
 

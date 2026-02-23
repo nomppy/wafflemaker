@@ -12,9 +12,13 @@ export async function GET() {
   const { results } = await db
     .prepare("SELECT target_type, target_id, new_waffle, comments FROM notification_settings WHERE user_id = ?")
     .bind(user.id)
-    .all<{ target_type: string; target_id: string | null; new_waffle: number; comments: number }>();
+    .all<{ target_type: string; target_id: string; new_waffle: number; comments: number }>();
 
-  return NextResponse.json(results);
+  // Convert empty string back to null for client
+  return NextResponse.json(results.map(r => ({
+    ...r,
+    target_id: r.target_id || null,
+  })));
 }
 
 export async function PUT(req: NextRequest) {
@@ -32,16 +36,27 @@ export async function PUT(req: NextRequest) {
 
   const db = getDb();
   const id = generateId();
+  // Use empty string instead of NULL for global settings (SQLite NULL != NULL in UNIQUE)
+  const effectiveTargetId = target_id || "";
 
-  await db
+  // Try update first, then insert if no rows affected
+  const updateResult = await db
     .prepare(
-      `INSERT INTO notification_settings (id, user_id, target_type, target_id, new_waffle, comments)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id, target_type, target_id)
-       DO UPDATE SET new_waffle = ?, comments = ?`
+      `UPDATE notification_settings SET new_waffle = ?, comments = ?
+       WHERE user_id = ? AND target_type = ? AND target_id = ?`
     )
-    .bind(id, user.id, target_type, target_id || null, new_waffle ? 1 : 0, comments ? 1 : 0, new_waffle ? 1 : 0, comments ? 1 : 0)
+    .bind(new_waffle ? 1 : 0, comments ? 1 : 0, user.id, target_type, effectiveTargetId)
     .run();
+
+  if (!updateResult.meta.changes) {
+    await db
+      .prepare(
+        `INSERT INTO notification_settings (id, user_id, target_type, target_id, new_waffle, comments)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .bind(id, user.id, target_type, effectiveTargetId, new_waffle ? 1 : 0, comments ? 1 : 0)
+      .run();
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -1,33 +1,38 @@
 # Wafflemaker Design Guidelines
 
-## Visual Language
-- **Aesthetic**: Cottagecore — gingham backgrounds, warm waffle tones, dashed borders, retro buttons
-- **Fonts**: `font-display` (Fredoka) for headings, system sans for body
-- **Colors**: cream, butter, waffle, syrup, waffle-dark (see tailwind config)
-- **Components**: `card-cottage`, `btn-retro`, `bubble-mine`, `bubble-theirs`, `prompt-card`
+## Visual Style
+- Cottagecore aesthetic: warm tones, gingham backgrounds, dashed borders
+- Font: display (Fredoka) for headings, system for body
+- Colors: waffle (golden), syrup (dark brown), cream, butter
+- Cards: `card-cottage` class with dashed borders
+- Buttons: `btn-retro` for primary actions
 
-## Icons & Emoji
-- **Do not use emoji for UI controls or interactive elements** — use text labels instead
-- Emoji is fine for decorative/content purposes (e.g., waffle 🧇 in marketing copy, empty states)
-- For buttons and toggles, plain text labels are clearer and more accessible
+## UI Principles
+- **No emoji for functional UI elements** — use text labels instead (e.g., "Notifications" not 🔔)
+- Emoji are fine in content/user-facing copy where they add warmth (e.g., "Send waffle 🧇" button text)
+- Keep actions discoverable — use text buttons, not icon-only
+- Toggles for settings, not checkboxes
+- Inline settings where possible (per-pair/circle) instead of forcing users to a separate page
+- Confirmation dialogs for destructive actions (unpair, leave circle)
 
 ## Notifications
-- Notification button labels: use "Notifications" text, not 🔔
-- Push notification titles: plain text, no emoji prefix (e.g., "New waffle from Kenneth", not "🧇 New waffle from Kenneth")
-- Notification body: keep it conversational and short
+- Push via Web Push API (works on iOS 16.4+ when added to Home Screen)
+- Dashboard shows a hint if push not enabled
+- Per-pair/circle notification overrides accessible inline from the conversation
+- Notification content: plain text, no emoji in titles
 
-## Layout
-- Max width: `max-w-lg` (32rem) for main content
-- Waffle bubbles: right-aligned for sender (`bubble-mine`), left for receiver (`bubble-theirs`)
-- Sticky bottom record area with `safe-b` for mobile safe area
+## Strict Mode
+- Wednesday-only waffle sending
+- Requires ALL members to opt in — any single member can disable
+- Enforced server-side (UTC Wednesday check)
+- Clearly shows opt-in status (X/Y opted in)
 
-## Recording & Transcripts
-- Live transcript shown during recording
-- Review screen after stop: editable transcript + optional description
-- View/Edit Transcript button on sent waffle bubbles (edit for sender, view-only for others)
+## Data Export
+- Client-side zip creation (JSZip) — no server compute overhead
+- Export includes: audio files + metadata.json (transcript, comments, timestamps)
+- Available per-waffle and per-conversation
 
-## Data & Privacy
-- Voice audio: kept for 7 days, then deleted
-- Transcripts: kept forever
-- Users can export their data (audio + metadata) as zip files
-- Export is client-side (JSZip) to minimize server overhead
+## Platform
+- Next.js on Cloudflare Workers + D1 + R2
+- PWA: installable, standalone mode, service worker for push
+- Auth: magic link + GitHub OAuth + Google OAuth

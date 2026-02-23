@@ -94,6 +94,20 @@ export function InlineNotificationSettings({
     setLoading(false);
   }
 
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          setPushEnabled(!!sub);
+        });
+      }).catch(() => setPushEnabled(false));
+    } else {
+      setPushEnabled(false);
+    }
+  }, []);
+
   if (!expanded) {
     return (
       <button
@@ -112,6 +126,11 @@ export function InlineNotificationSettings({
         <span className="text-[10px] font-semibold uppercase tracking-wider text-waffle-dark/40">Notifications</span>
         <button onClick={() => setExpanded(false)} className="text-[10px] font-semibold text-waffle-dark/30 hover:text-waffle-dark/60">✕</button>
       </div>
+      {pushEnabled === false && (
+        <a href="/settings" className="block rounded-md bg-waffle-light/20 px-2 py-1.5 text-[10px] text-waffle-dark/60 hover:bg-waffle-light/30">
+          Enable push notifications in Settings first
+        </a>
+      )}
       {setting ? (
         <div className={`space-y-1 ${loading ? "opacity-50" : ""}`}>
           <Toggle

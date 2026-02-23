@@ -54,6 +54,27 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Strict mode: only allow sending on Wednesdays (sender's local time sent via header, fallback to UTC)
+  const targetType = pairId ? "pair" : "circle";
+  const targetId = pairId || circleId;
+  const table = targetType === "pair" ? "pairs" : "circles";
+  const strictRow = await db
+    .prepare(`SELECT strict_mode FROM ${table} WHERE id = ?`)
+    .bind(targetId)
+    .first<{ strict_mode: number }>();
+
+  if (strictRow?.strict_mode) {
+    // Check if it's Wednesday in UTC (day 3)
+    const now = new Date();
+    const day = now.getUTCDay();
+    if (day !== 3) {
+      return NextResponse.json(
+        { error: "Strict mode is on — waffles can only be sent on Wednesdays!" },
+        { status: 403 }
+      );
+    }
+  }
+
   const id = generateId();
   const storageKey = `${id}.webm`;
   const expiresAt = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(); // 4 weeks

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { WaffleRecorder } from "@/components/waffle-recorder";
 import { InlineNotificationSettings } from "@/components/notification-toggle";
+import { StrictModeToggle } from "@/components/strict-mode";
 import { exportSingleWaffle, exportAllWaffles, DownloadButton, ExportAllButton } from "@/components/waffle-export";
 
 interface Comment {
@@ -360,6 +361,7 @@ export function CircleView({
           </button>
         )}
         <InlineNotificationSettings targetType="circle" targetId={circleId} />
+        <StrictModeToggle targetType="circle" targetId={circleId} />
       </div>
 
       {/* Waffles list */}
