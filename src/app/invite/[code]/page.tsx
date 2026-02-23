@@ -48,7 +48,31 @@ export default async function InvitePage({
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(`/login?redirect=/invite/${code}`);
+    // Don't redirect — render a landing page so link previews (Discord, iMessage, etc.) can read OG tags
+    const db2 = getDb();
+    const invitePreview = await db2
+      .prepare(
+        "SELECT u.display_name FROM invites i JOIN users u ON u.id = i.from_user_id WHERE i.code = ?"
+      )
+      .bind(code)
+      .first<{ display_name: string }>();
+    const senderName = invitePreview?.display_name || "Someone";
+    
+    return (
+      <main className="flex min-h-screen items-center justify-center p-6" style={{background: '#fffbf0'}}>
+        <div className="text-center max-w-sm">
+          <p className="text-4xl mb-4">🧇</p>
+          <h1 className="text-2xl font-bold text-amber-900 mb-2">{senderName} invited you to Wafflemaker</h1>
+          <p className="text-amber-700 mb-6">Async voice pen-pals. Record a waffle, send it to a friend, and hear back on Wednesday.</p>
+          <a
+            href={`/login?redirect=/invite/${code}`}
+            className="inline-block px-6 py-3 bg-amber-800 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
+          >
+            Accept Invite
+          </a>
+        </div>
+      </main>
+    );
   }
 
   const db = getDb();
