@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import JSZip from "jszip";
 
 interface ExportWaffle {
@@ -106,20 +107,45 @@ export async function exportAllWaffles(
   triggerDownload(blob, `${sanitizeFilename(contextName)}-waffles.zip`);
 }
 
-export function DownloadButton({ onClick }: { onClick: () => void }) {
+export function DownloadButton({ onClick }: { onClick: () => void | Promise<void> }) {
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleClick() {
+    setDownloading(true);
+    try {
+      await onClick();
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <button
       onClick={(e) => {
         e.stopPropagation();
-        onClick();
+        handleClick();
       }}
-      className="flex h-6 w-6 items-center justify-center rounded text-waffle-dark/40 transition-colors hover:bg-waffle-light/30 hover:text-waffle-dark/70"
-      title="Download waffle"
+      disabled={downloading}
+      className="group flex items-center gap-1.5 rounded-lg bg-white/40 border border-waffle-light/30 px-2.5 py-1.5 text-waffle-dark/50 transition-all hover:bg-butter hover:border-waffle-light/50 hover:text-syrup disabled:opacity-50"
+      title="Save this waffle"
     >
-      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current">
-        <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
-        <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+      {/* Waffle-in-a-takeout-box illustration */}
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Box */}
+        <path d="M4 10h16v10a2 2 0 01-2 2H6a2 2 0 01-2-2V10z" fill="#f5e6d0" stroke="#c8913a" strokeWidth="1.2"/>
+        {/* Box lid */}
+        <path d="M3 7h18a1 1 0 011 1v2H2V8a1 1 0 011-1z" fill="#e8c47a" stroke="#a0722c" strokeWidth="1.2"/>
+        {/* Waffle peeking out */}
+        <rect x="8" y="3" width="8" height="6" rx="1" fill="#e8c47a" stroke="#c8913a" strokeWidth="0.8"/>
+        <line x1="10" y1="3" x2="10" y2="9" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        <line x1="12" y1="3" x2="12" y2="9" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        <line x1="14" y1="3" x2="14" y2="9" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        <line x1="8" y1="5" x2="16" y2="5" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        <line x1="8" y1="7" x2="16" y2="7" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        {/* Down arrow on box */}
+        <path d="M12 14v4m0 0l-1.5-1.5M12 18l1.5-1.5" stroke="#a0722c" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
+      <span className="text-[10px] font-semibold">{downloading ? "Saving..." : "Save waffle"}</span>
     </button>
   );
 }

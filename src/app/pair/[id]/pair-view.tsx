@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { WaffleRecorder } from "@/components/waffle-recorder";
 import { InlineNotificationSettings } from "@/components/notification-toggle";
 import { StrictModeToggle } from "@/components/strict-mode";
-import { exportSingleWaffle, exportAllWaffles, DownloadButton, ExportAllButton } from "@/components/waffle-export";
+import { exportSingleWaffle, DownloadButton } from "@/components/waffle-export";
 
 interface SpeechRecognitionResult {
   readonly isFinal: boolean;
@@ -454,9 +454,6 @@ export function PairView({
           <StrictModeToggle targetType="pair" targetId={pairId} />
         </div>
         <div className="flex items-center gap-3">
-        {waffles.length > 0 && (
-          <ExportAllButton onClick={() => exportAllWaffles(waffles, "pair")} />
-        )}
         {showUnpair ? (
           <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
             <span className="text-xs text-red-700">Remove this pair?</span>

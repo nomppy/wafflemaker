@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { WaffleRecorder } from "@/components/waffle-recorder";
 import { InlineNotificationSettings } from "@/components/notification-toggle";
 import { StrictModeToggle } from "@/components/strict-mode";
-import { exportSingleWaffle, exportAllWaffles, DownloadButton, ExportAllButton } from "@/components/waffle-export";
+import { exportSingleWaffle, DownloadButton } from "@/components/waffle-export";
 
 interface Comment {
   id: string;
@@ -343,9 +343,6 @@ export function CircleView({
           <button onClick={createInvite} className="rounded-full bg-butter-deep px-2 py-0.5 text-xs font-semibold text-syrup">
             + Invite
           </button>
-        )}
-        {waffles.length > 0 && (
-          <ExportAllButton onClick={() => exportAllWaffles(waffles, "circle")} />
         )}
         {showLeave ? (
           <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-1">
