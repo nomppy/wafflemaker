@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Wafflemaker",
   description:
-    "Async voice pen-pals. Record a waffle, send it to a friend, and hear back on Wednesday.",
+    "Async voice pen-pals. Record a waffle every Wednesday and send it to a friend.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Wafflemaker",
     description:
-      "Async voice pen-pals. Record a waffle, send it to a friend, and hear back on Wednesday.",
+      "Async voice pen-pals. Record a waffle every Wednesday and send it to a friend.",
     type: "website",
     siteName: "Wafflemaker",
   },

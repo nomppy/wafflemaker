@@ -26,7 +26,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${name} invited you to Wafflemaker`,
       description:
-        "Record a waffle, send it to a friend, and hear back on Wednesday.",
+        "Record a waffle every Wednesday and send it to a friend.",
       type: "website",
       siteName: "Wafflemaker",
     },
@@ -63,7 +63,7 @@ export default async function InvitePage({
         <div className="text-center max-w-sm">
           <p className="text-4xl mb-4">🧇</p>
           <h1 className="text-2xl font-bold text-amber-900 mb-2">{senderName} invited you to Wafflemaker</h1>
-          <p className="text-amber-700 mb-6">Async voice pen-pals. Record a waffle, send it to a friend, and hear back on Wednesday.</p>
+          <p className="text-amber-700 mb-6">Async voice pen-pals. Record a waffle every Wednesday and send it to a friend.</p>
           <a
             href={`/login?redirect=/invite/${code}`}
             className="inline-block px-6 py-3 bg-amber-800 text-white rounded-lg font-medium hover:bg-amber-700 transition-colors"
