@@ -45,10 +45,12 @@ export async function GET(req: NextRequest) {
     strictActive = !!circle?.strict_mode;
   }
 
+  const optedOut = votes.filter(v => v.vote === 0);
   return NextResponse.json({
     strictActive,
     myVote: myVote?.vote ?? null,
     optedInCount: optedIn.length,
+    optedOutCount: optedOut.length,
     memberCount,
     allOptedIn,
   });
@@ -96,12 +98,25 @@ export async function POST(req: NextRequest) {
     .bind(targetType, targetId)
     .all<{ vote: number }>();
 
-  const allOptedIn = allVotes.filter(v => v.vote === 1).length === memberCount && memberCount > 0;
+  const optedInCount = allVotes.filter(v => v.vote === 1).length;
+  const optedOutCount = allVotes.filter(v => v.vote === 0).length;
+  const allOptedIn = optedInCount === memberCount && memberCount > 0;
+  const allOptedOut = optedOutCount === memberCount && memberCount > 0;
 
-  // If anyone opts out, disable strict mode
+  // Get current strict mode status
   const table = targetType === "pair" ? "pairs" : "circles";
-  await db.prepare(`UPDATE ${table} SET strict_mode = ? WHERE id = ?`)
-    .bind(allOptedIn ? 1 : 0, targetId).run();
+  const current = await db.prepare(`SELECT strict_mode FROM ${table} WHERE id = ?`).bind(targetId).first<{ strict_mode: number }>();
+  const wasActive = !!current?.strict_mode;
 
-  return NextResponse.json({ ok: true, strictActive: allOptedIn });
+  // Enable: all must opt in. Disable: all must opt out (consensus both ways).
+  let newActive = wasActive;
+  if (!wasActive && allOptedIn) newActive = true;
+  if (wasActive && allOptedOut) newActive = false;
+
+  if (newActive !== wasActive) {
+    await db.prepare(`UPDATE ${table} SET strict_mode = ? WHERE id = ?`)
+      .bind(newActive ? 1 : 0, targetId).run();
+  }
+
+  return NextResponse.json({ ok: true, strictActive: newActive });
 }

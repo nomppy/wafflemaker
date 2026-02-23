@@ -6,6 +6,7 @@ interface StrictStatus {
   strictActive: boolean;
   myVote: number | null;
   optedInCount: number;
+  optedOutCount: number;
   memberCount: number;
   allOptedIn: boolean;
 }
@@ -70,12 +71,14 @@ export function StrictModeToggle({
       </div>
       <p className="text-[11px] leading-relaxed text-waffle-dark/60">
         {status.strictActive
-          ? "Waffles can only be sent on Wednesdays. All members opted in."
-          : "When all members opt in, waffles can only be sent on Wednesdays. Any member can disable it."}
+          ? "Waffles can only be sent on Wednesdays. All members must agree to turn this off."
+          : "When all members opt in, waffles can only be sent on Wednesdays."}
       </p>
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-waffle-dark/50">
-          {status.optedInCount}/{status.memberCount} opted in
+          {status.strictActive
+            ? `${status.optedOutCount || 0}/${status.memberCount} want to disable`
+            : `${status.optedInCount}/${status.memberCount} opted in`}
         </span>
         {status.strictActive && (
           <span className="rounded-full bg-waffle/10 px-1.5 py-0.5 text-[9px] font-bold text-waffle">Active</span>
