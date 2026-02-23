@@ -124,6 +124,9 @@ export function PairView({
   const [micError, setMicError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [showTranscriptId, setShowTranscriptId] = useState<string | null>(null);
+  const [editingTranscript, setEditingTranscript] = useState("");
+  const [savingTranscript, setSavingTranscript] = useState(false);
   const [pendingWaffle, setPendingWaffle] = useState<{
     blob: Blob;
     duration: number;
@@ -496,6 +499,63 @@ export function PairView({
                 <p className="mt-1 text-xs opacity-60">
                   {w.sender_name} &middot; {formatDate(w.created_at)}
                 </p>
+                {w.transcript && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (showTranscriptId === w.id) {
+                        setShowTranscriptId(null);
+                      } else {
+                        setShowTranscriptId(w.id);
+                        setEditingTranscript(w.transcript);
+                      }
+                    }}
+                    className="mt-1.5 text-[11px] font-semibold text-waffle/70 hover:text-waffle transition-colors"
+                  >
+                    {showTranscriptId === w.id ? "Hide Transcript" : isMine ? "View/Edit Transcript" : "View Transcript"}
+                  </button>
+                )}
+                {showTranscriptId === w.id && w.transcript && (
+                  isMine ? (
+                    <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+                      <textarea
+                        value={editingTranscript}
+                        onChange={(e) => setEditingTranscript(e.target.value)}
+                        className="w-full rounded-lg border border-waffle-light/40 bg-white/50 px-2 py-1.5 text-[11px] leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle resize-none"
+                        rows={3}
+                      />
+                      {editingTranscript !== w.transcript && (
+                        <div className="mt-1 flex gap-1.5">
+                          <button
+                            onClick={async () => {
+                              setSavingTranscript(true);
+                              await fetch(`/api/waffles/transcript/${w.id}`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ transcript: editingTranscript }),
+                              });
+                              setSavingTranscript(false);
+                              setShowTranscriptId(null);
+                              loadWaffles();
+                            }}
+                            disabled={savingTranscript}
+                            className="rounded-md bg-waffle px-2 py-0.5 text-[10px] font-semibold text-white disabled:opacity-50"
+                          >
+                            {savingTranscript ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            onClick={() => setEditingTranscript(w.transcript)}
+                            className="rounded-md bg-waffle-light/30 px-2 py-0.5 text-[10px] font-semibold text-waffle-dark/60"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-1.5 text-[11px] leading-relaxed opacity-75">{w.transcript}</p>
+                  )
+                )}
               </div>
 
               {/* Expanded detail view */}
@@ -684,11 +744,16 @@ export function PairView({
                 Discard
               </button>
             </div>
-            {pendingWaffle.transcript && (
-              <div className="rounded-lg bg-white/60 p-2 text-xs leading-relaxed text-waffle-dark/70">
-                {pendingWaffle.transcript}
-              </div>
-            )}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-waffle-dark/60">Transcript</label>
+              <textarea
+                value={pendingWaffle.transcript}
+                onChange={(e) => setPendingWaffle({ ...pendingWaffle, transcript: e.target.value })}
+                placeholder="No transcript captured — type one manually if you'd like"
+                className="w-full resize-none rounded-lg border border-waffle-light/40 bg-white/50 px-3 py-2 text-xs leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle"
+                rows={3}
+              />
+            </div>
             <textarea
               value={pendingDescription}
               onChange={(e) => setPendingDescription(e.target.value)}
