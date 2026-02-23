@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { WaffleRecorder } from "@/components/waffle-recorder";
+import { InlineNotificationSettings } from "@/components/notification-toggle";
 import { exportSingleWaffle, exportAllWaffles, DownloadButton, ExportAllButton } from "@/components/waffle-export";
 
 interface Comment {
@@ -358,6 +359,7 @@ export function CircleView({
             Leave
           </button>
         )}
+        <InlineNotificationSettings targetType="circle" targetId={circleId} />
       </div>
 
       {/* Waffles list */}

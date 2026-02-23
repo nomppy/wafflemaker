@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { WaffleRecorder } from "@/components/waffle-recorder";
+import { InlineNotificationSettings } from "@/components/notification-toggle";
 import { exportSingleWaffle, exportAllWaffles, DownloadButton, ExportAllButton } from "@/components/waffle-export";
 
 interface SpeechRecognitionResult {
@@ -446,7 +447,9 @@ export function PairView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Settings bar */}
-      <div className="mb-3 flex items-center justify-end gap-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <InlineNotificationSettings targetType="pair" targetId={pairId} />
+        <div className="flex items-center gap-3">
         {waffles.length > 0 && (
           <ExportAllButton onClick={() => exportAllWaffles(waffles, "pair")} />
         )}
@@ -475,6 +478,7 @@ export function PairView({
             Unpair
           </button>
         )}
+        </div>
       </div>
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pb-4">
         {waffles.length === 0 && !recording && (
