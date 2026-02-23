@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { WaffleRecorder } from "@/components/waffle-recorder";
 
 interface SpeechRecognitionResult {
   readonly isFinal: boolean;
@@ -759,116 +760,7 @@ export function PairView({
         })}
       </div>
 
-      {/* Record area */}
-      <div className="sticky bottom-0 mt-auto flex flex-col items-center border-t-2 border-dashed border-waffle-light/40 bg-cream pb-6 pt-5 safe-b">
-        {uploading ? (
-          <div className="flex items-center gap-3">
-            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-waffle border-t-transparent" />
-            <p className="font-display font-medium text-waffle-dark">Sending your waffle...</p>
-          </div>
-        ) : pendingWaffle ? (
-          /* Post-recording: add description before sending */
-          <div className="w-full space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="font-display text-sm font-semibold text-syrup">
-                Your waffle ({formatTime(pendingWaffle.duration)})
-              </p>
-              <button
-                onClick={discardPendingWaffle}
-                className="text-xs font-bold text-waffle-dark/40 hover:text-red-600"
-              >
-                Discard
-              </button>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-waffle-dark/60">Transcript</label>
-              <textarea
-                value={pendingWaffle.transcript}
-                onChange={(e) => setPendingWaffle({ ...pendingWaffle, transcript: e.target.value })}
-                placeholder="No transcript captured — type one manually if you'd like"
-                className="w-full resize-none rounded-lg border border-waffle-light/40 bg-white/50 px-3 py-2 text-xs leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle"
-                rows={3}
-              />
-            </div>
-            <textarea
-              value={pendingDescription}
-              onChange={(e) => setPendingDescription(e.target.value)}
-              placeholder="Add a description or notes about this waffle... (optional)"
-              className="w-full resize-none rounded-xl border-2 border-waffle-light/40 bg-white/50 px-3 py-2 text-sm leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle"
-              rows={3}
-              autoFocus
-            />
-            <button
-              onClick={sendPendingWaffle}
-              className="btn-retro w-full py-3 text-sm"
-            >
-              Send waffle
-            </button>
-          </div>
-        ) : recording ? (
-          <>
-            <p className="mb-3 font-mono text-2xl font-bold text-red-600 tabular-nums">
-              {formatTime(recordingTime)}
-            </p>
-            {liveTranscript && (
-              <div className="mb-3 w-full rounded-lg bg-white/60 px-3 py-2 text-xs leading-relaxed text-waffle-dark/70">
-                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-waffle/50">
-                  Live transcript
-                </p>
-                {liveTranscript}
-              </div>
-            )}
-            <button
-              onClick={stopRecording}
-              className="btn-record btn-record-active"
-              aria-label="Stop recording"
-            >
-              <span className="relative z-10 block h-7 w-7 rounded bg-white" />
-            </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to stop</p>
-          </>
-        ) : (
-          <>
-            {micError && (
-              <div className="mb-4 w-full rounded-xl border-2 border-red-200 bg-red-50 p-4 text-left">
-                <p className="font-display text-sm font-semibold text-red-800">
-                  Microphone unavailable
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-red-600">{micError}</p>
-                <button
-                  onClick={() => setMicError(null)}
-                  className="mt-2 text-xs font-bold text-red-400 hover:text-red-600"
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
-            <div className="prompt-card mb-5 w-full p-4 text-center">
-              <p className="font-display text-xs font-semibold uppercase tracking-widest text-waffle/80">
-                Not sure what to say?
-              </p>
-              <p className="mt-1.5 text-sm font-medium leading-relaxed text-syrup">{prompt}</p>
-              <button
-                onClick={() => setPrompt(getRandomPrompt())}
-                className="mt-2 text-xs font-bold text-waffle hover:text-syrup"
-              >
-                Another prompt &rarr;
-              </button>
-            </div>
-            <button
-              onClick={startRecording}
-              className="btn-record"
-              aria-label="Start recording"
-            >
-              <span className="relative z-10 block h-5 w-5 rounded-full bg-white shadow-sm" />
-            </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to record a waffle</p>
-            <p className="mt-2 text-[11px] text-waffle-dark/40">
-              Voice messages are kept for 7 days. Transcripts are saved forever.
-            </p>
-          </>
-        )}
-      </div>
+      <WaffleRecorder targetId={pairId} targetType="pair" onSent={loadWaffles} />
     </div>
   );
 }

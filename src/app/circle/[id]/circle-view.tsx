@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { WaffleRecorder } from "@/components/waffle-recorder";
 
 interface Comment {
   id: string;
@@ -479,66 +480,7 @@ export function CircleView({
         })}
       </div>
 
-      {/* Record area */}
-      <div className="sticky bottom-0 mt-auto flex flex-col items-center border-t-2 border-dashed border-waffle-light/40 bg-cream pb-6 pt-5 safe-b">
-        {uploading ? (
-          <div className="flex items-center gap-3">
-            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-waffle border-t-transparent" />
-            <p className="font-display font-medium text-waffle-dark">Sending your waffle...</p>
-          </div>
-        ) : pendingBlob ? (
-          <div className="w-full max-w-sm space-y-3">
-            <p className="font-display text-center text-sm font-semibold text-syrup">Review your waffle</p>
-            <div className="flex items-center justify-center gap-2 text-sm text-waffle-dark/70">
-              <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current"><path d="M4 2.5v11l9-5.5z"/></svg>
-              <span className="font-mono">{formatTime(pendingDuration)}</span>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-waffle-dark/60">Transcript</label>
-              <textarea
-                value={pendingTranscript}
-                onChange={(e) => setPendingTranscript(e.target.value)}
-                placeholder="No transcript captured — type one manually if you'd like"
-                className="w-full rounded-lg border border-waffle-light/40 bg-white/50 px-3 py-2 text-xs leading-relaxed text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle resize-none"
-                rows={3}
-              />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={discardPending} className="flex-1 rounded-xl border-2 border-waffle-light/40 bg-white/50 py-2.5 text-sm font-semibold text-waffle-dark/60 transition-colors hover:bg-white/80">
-                Discard
-              </button>
-              <button onClick={sendPendingWaffle} className="flex-1 rounded-xl bg-waffle py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-waffle-dark">
-                Send Waffle 🧇
-              </button>
-            </div>
-          </div>
-        ) : recording ? (
-          <>
-            <p className="mb-3 font-mono text-2xl font-bold text-red-600 tabular-nums">{formatTime(recordingTime)}</p>
-            <button onClick={stopRecording} className="btn-record btn-record-active" aria-label="Stop recording">
-              <span className="relative z-10 block h-7 w-7 rounded bg-white" />
-            </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to stop recording</p>
-          </>
-        ) : (
-          <>
-            {micError && (
-              <div className="mb-4 w-full rounded-xl border-2 border-red-200 bg-red-50 p-4 text-left">
-                <p className="font-display text-sm font-semibold text-red-800">Microphone unavailable</p>
-                <p className="mt-1 text-sm leading-relaxed text-red-600">{micError}</p>
-                <button onClick={() => setMicError(null)} className="mt-2 text-xs font-bold text-red-400 hover:text-red-600">Dismiss</button>
-              </div>
-            )}
-            <button onClick={startRecording} className="btn-record" aria-label="Start recording">
-              <span className="relative z-10 block h-5 w-5 rounded-full bg-white shadow-sm" />
-            </button>
-            <p className="mt-3 text-sm font-medium text-waffle-dark/60">Tap to record a waffle</p>
-            <p className="mt-2 text-[11px] text-waffle-dark/40">
-              Voice messages are kept for 7 days. Transcripts are saved forever.
-            </p>
-          </>
-        )}
-      </div>
+      <WaffleRecorder targetId={circleId} targetType="circle" onSent={loadData} />
     </div>
   );
 }
