@@ -6,12 +6,20 @@ export function InviteButton() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function createInvite() {
     setLoading(true);
+    setError(null);
     const res = await fetch("/api/invites", { method: "POST" });
     const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "Could not create invite.");
+      setLoading(false);
+      return;
+    }
     setInviteUrl(data.url);
+    setCopied(false);
     setLoading(false);
   }
 
@@ -19,7 +27,12 @@ export function InviteButton() {
     if (!inviteUrl) return;
     await navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function inviteAnother() {
+    setInviteUrl(null);
+    setCopied(false);
+    createInvite();
   }
 
   if (inviteUrl) {
@@ -41,17 +54,34 @@ export function InviteButton() {
             {copied ? "Copied!" : "Copy"}
           </button>
         </div>
+        {copied && (
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-xs text-waffle-dark/50">Link copied to clipboard</span>
+            <button
+              onClick={inviteAnother}
+              disabled={loading}
+              className="text-xs font-semibold text-waffle hover:text-syrup transition-colors disabled:opacity-50"
+            >
+              {loading ? "Creating..." : "Invite another friend"}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <button
-      onClick={createInvite}
-      disabled={loading}
-      className="btn-retro w-full py-3.5 text-base disabled:opacity-50"
-    >
-      {loading ? "Creating..." : "Invite a friend"}
-    </button>
+    <div>
+      <button
+        onClick={createInvite}
+        disabled={loading}
+        className="btn-retro w-full py-3.5 text-base disabled:opacity-50"
+      >
+        {loading ? "Creating..." : "Invite a friend"}
+      </button>
+      {error && (
+        <p className="mt-2 text-center text-xs text-red-600">{error}</p>
+      )}
+    </div>
   );
 }

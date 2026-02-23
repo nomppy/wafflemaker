@@ -9,6 +9,22 @@ export async function POST() {
   }
 
   const db = getDb();
+
+  // Check active invite count (max 5)
+  const activeCount = await db
+    .prepare(
+      "SELECT COUNT(*) as count FROM invites WHERE from_user_id = ? AND expires_at > datetime('now') AND used = 0"
+    )
+    .bind(user.id)
+    .first<{ count: number }>();
+
+  if (activeCount && activeCount.count >= 5) {
+    return NextResponse.json(
+      { error: "You have 5 active invites. Wait for some to expire or be used." },
+      { status: 429 }
+    );
+  }
+
   const id = generateId();
   const bytes = new Uint8Array(6);
   crypto.getRandomValues(bytes);
