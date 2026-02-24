@@ -47,7 +47,7 @@ async function createVapidAuthHeader(
   vapidPrivateKeyJwk: JsonWebKey,
   vapidPublicKey: string,
   vapidSubject: string
-): Promise<{ authorization: string; cryptoKey: string }> {
+): Promise<{ authorization: string }> {
   const url = new URL(endpoint);
   const audience = `${url.protocol}//${url.host}`;
 
@@ -91,7 +91,6 @@ async function createVapidAuthHeader(
 
   return {
     authorization: `vapid t=${jwt}, k=${vapidPublicKey}`,
-    cryptoKey: `p256ecdsa=${vapidPublicKey}`,
   };
 }
 
@@ -218,7 +217,7 @@ export async function sendPushNotification(
   const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
 
   const { ciphertext } = await encryptPayload(subscription, payloadBytes);
-  const { authorization, cryptoKey } = await createVapidAuthHeader(
+  const { authorization } = await createVapidAuthHeader(
     subscription.endpoint,
     vapidPrivateKeyJwk,
     vapidPublicKey,
@@ -229,7 +228,6 @@ export async function sendPushNotification(
     method: "POST",
     headers: {
       Authorization: authorization,
-      "Crypto-Key": cryptoKey,
       "Content-Encoding": "aes128gcm",
       "Content-Type": "application/octet-stream",
       TTL: "86400",

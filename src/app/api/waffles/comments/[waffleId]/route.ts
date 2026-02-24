@@ -61,7 +61,7 @@ export async function POST(
         .prepare(
           `SELECT comments FROM notification_settings
            WHERE user_id = ? AND (
-             (target_type = 'global' AND target_id IS NULL)
+             (target_type = 'global' AND (target_id IS NULL OR target_id = ''))
              OR (target_type = 'pair' AND target_id = ?)
              OR (target_type = 'circle' AND target_id = ?)
            )

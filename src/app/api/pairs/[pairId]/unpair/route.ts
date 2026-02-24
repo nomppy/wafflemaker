@@ -24,7 +24,12 @@ export async function POST(
     return NextResponse.json({ error: "Pair not found" }, { status: 404 });
   }
 
-  // Delete the pair (waffles will remain but pair link is gone)
+  // Clean up foreign key references before deleting the pair
+  // (D1 enforces FK constraints — DELETE FROM pairs fails if waffles reference it)
+  await db.prepare("DELETE FROM comments WHERE waffle_id IN (SELECT id FROM waffles WHERE pair_id = ?)").bind(pairId).run();
+  await db.prepare("DELETE FROM waffles WHERE pair_id = ?").bind(pairId).run();
+  await db.prepare("DELETE FROM notification_settings WHERE target_type = 'pair' AND target_id = ?").bind(pairId).run();
+  await db.prepare("DELETE FROM strict_mode_votes WHERE target_type = 'pair' AND target_id = ?").bind(pairId).run();
   await db.prepare("DELETE FROM pairs WHERE id = ?").bind(pairId).run();
 
   return NextResponse.json({ ok: true });

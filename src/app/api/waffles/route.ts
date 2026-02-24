@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         const setting = await db
           .prepare(
             `SELECT new_waffle FROM notification_settings
-             WHERE user_id = ? AND ((target_type = 'pair' AND target_id = ?) OR (target_type = 'global' AND target_id IS NULL))
+             WHERE user_id = ? AND ((target_type = 'pair' AND target_id = ?) OR (target_type = 'global' AND (target_id IS NULL OR target_id = '')))
              ORDER BY CASE WHEN target_id IS NOT NULL THEN 0 ELSE 1 END LIMIT 1`
           )
           .bind(recipientId, pairId)
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
         const setting = await db
           .prepare(
             `SELECT new_waffle FROM notification_settings
-             WHERE user_id = ? AND ((target_type = 'circle' AND target_id = ?) OR (target_type = 'global' AND target_id IS NULL))
+             WHERE user_id = ? AND ((target_type = 'circle' AND target_id = ?) OR (target_type = 'global' AND (target_id IS NULL OR target_id = '')))
              ORDER BY CASE WHEN target_id IS NOT NULL THEN 0 ELSE 1 END LIMIT 1`
           )
           .bind(member.user_id, circleId)
