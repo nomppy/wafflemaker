@@ -5,6 +5,7 @@ import { WaffleRecorder } from "@/components/waffle-recorder";
 import { InlineNotificationSettings } from "@/components/notification-toggle";
 import { StrictModeToggle } from "@/components/strict-mode";
 import { exportSingleWaffle, DownloadButton } from "@/components/waffle-export";
+import { SpeedControl, usePlaybackSpeed } from "@/components/speed-control";
 
 interface Comment {
   id: string;
@@ -214,6 +215,7 @@ export function CircleView({
   }
 
   const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const { speed, updateSpeed } = usePlaybackSpeed(persistentAudioRef);
 
   function getAudioElement(): HTMLAudioElement {
     if (!persistentAudioRef.current) {
@@ -442,6 +444,7 @@ export function CircleView({
                         <span>{formatTime(isPlaying && playbackDuration ? playbackDuration : w.duration_seconds)}</span>
                       </div>
                     </div>
+                    <SpeedControl speed={speed} onSpeedChange={updateSpeed} />
                   </div>
 
                   {/* Download button */}

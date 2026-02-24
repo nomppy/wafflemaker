@@ -5,6 +5,7 @@ import { WaffleRecorder } from "@/components/waffle-recorder";
 import { InlineNotificationSettings } from "@/components/notification-toggle";
 import { StrictModeToggle } from "@/components/strict-mode";
 import { exportSingleWaffle, DownloadButton } from "@/components/waffle-export";
+import { SpeedControl, usePlaybackSpeed } from "@/components/speed-control";
 
 interface SpeechRecognitionResult {
   readonly isFinal: boolean;
@@ -324,6 +325,7 @@ export function PairView({
   // Use a persistent <audio> element for iOS Safari compatibility.
   // iOS requires play() in the same user gesture and from a DOM element.
   const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const { speed, updateSpeed } = usePlaybackSpeed(persistentAudioRef);
 
   function getAudioElement(): HTMLAudioElement {
     if (!persistentAudioRef.current) {
@@ -655,6 +657,7 @@ export function PairView({
                           <span>{formatTime(isPlaying && playbackDuration ? playbackDuration : w.duration_seconds)}</span>
                         </div>
                       </div>
+                      <SpeedControl speed={speed} onSpeedChange={updateSpeed} />
                     </div>
                   </div>
 
