@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
             title: "New Waffle!",
             body: `${user.display_name} sent you a waffle`,
             url: `/pair/${pairId}`,
-          });
+          }).catch((err) => console.error("Push send error:", err));
         }
       }
     }
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
             title: `New Waffle in ${circleName?.name || "circle"}`,
             body: `${user.display_name} posted a waffle`,
             url: `/circle/${circleId}`,
-          });
+          }).catch((err) => console.error("Push send error:", err));
         }
       }
     }

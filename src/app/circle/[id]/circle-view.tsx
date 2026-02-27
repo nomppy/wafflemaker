@@ -493,6 +493,32 @@ export function CircleView({
         })}
       </div>
 
+      {/* Floating comment bar during playback */}
+      {playingId && (
+        <div className="mb-2 rounded-xl border border-waffle-light/40 bg-white/80 px-3 py-2 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 rounded-full bg-waffle/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-waffle">
+              {formatTime(playbackTime)}
+            </span>
+            <input
+              type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && playingId && addComment(playingId)}
+              placeholder="Add a comment..."
+              className="flex-1 rounded-lg border border-waffle-light/30 bg-white/60 px-2 py-1.5 text-xs text-waffle-dark outline-none placeholder:text-waffle-dark/30 focus:border-waffle"
+            />
+            <button
+              onClick={() => playingId && addComment(playingId)}
+              disabled={!commentText.trim()}
+              className="rounded-lg bg-waffle px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-30"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      )}
+
       <WaffleRecorder targetId={circleId} targetType="circle" onSent={loadData} />
     </div>
   );

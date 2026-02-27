@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { recordVisit } from "@/lib/visits";
 import Link from "next/link";
 import { PairView } from "./pair-view";
 
@@ -27,6 +28,9 @@ export default async function PairPage({
     .first<{ id: string; partner_name: string }>();
 
   if (!pair) redirect("/dashboard");
+
+  // Record visit (fire-and-forget)
+  recordVisit(user.id, "pair", pairId).catch(() => {});
 
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col p-6">

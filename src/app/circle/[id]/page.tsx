@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { recordVisit } from "@/lib/visits";
 import Link from "next/link";
 import { CircleView } from "./circle-view";
 
@@ -29,6 +30,8 @@ export default async function CirclePage({
     .first<{ id: string; name: string }>();
 
   if (!circle) redirect("/dashboard");
+
+  recordVisit(user.id, "circle", circleId).catch(() => {});
 
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col p-6">

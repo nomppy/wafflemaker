@@ -77,7 +77,7 @@ export async function POST(
           title: "New Comment",
           body: `${user.display_name} commented on your waffle`,
           url,
-        });
+        }).catch((err) => console.error("Push send error:", err));
       }
     }
   } catch {

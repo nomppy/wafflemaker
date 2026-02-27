@@ -8,6 +8,7 @@ import { InviteButton } from "./invite-button";
 import { CreateCircleButton } from "./create-circle-button";
 import { LogoutButton } from "./logout-button";
 import { getStreak } from "@/lib/streaks";
+import { hasNewContent } from "@/lib/visits";
 import { EditName } from "./edit-name";
 
 interface Pair {
@@ -15,12 +16,14 @@ interface Pair {
   partner_name: string;
   partner_email: string;
   streak: number;
+  hasNew: boolean;
 }
 
 interface Circle {
   id: string;
   name: string;
   member_count: number;
+  hasNew: boolean;
 }
 
 async function getUserPairs(userId: string): Promise<Pair[]> {
@@ -53,6 +56,27 @@ async function getUserCircles(userId: string): Promise<Circle[]> {
     .bind(userId)
     .all<Circle>();
   return results;
+}
+
+function NewWaffleBadge() {
+  return (
+    <span className="relative flex items-center gap-1 rounded-full bg-waffle/10 px-2 py-0.5" title="New waffle!">
+      {/* Tiny waffle icon with steam */}
+      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Steam wisps */}
+        <path d="M5 4 C5 2.5 6 2.5 6 1" stroke="#c8913a" strokeWidth="0.8" strokeLinecap="round" opacity="0.5"/>
+        <path d="M8 3.5 C8 2 9 2 9 0.5" stroke="#c8913a" strokeWidth="0.8" strokeLinecap="round" opacity="0.4"/>
+        <path d="M11 4 C11 2.5 12 2.5 12 1" stroke="#c8913a" strokeWidth="0.8" strokeLinecap="round" opacity="0.5"/>
+        {/* Waffle square */}
+        <rect x="3" y="5" width="10" height="10" rx="1.5" fill="#e8c47a" stroke="#c8913a" strokeWidth="0.8"/>
+        <line x1="6.3" y1="5" x2="6.3" y2="15" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        <line x1="9.7" y1="5" x2="9.7" y2="15" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        <line x1="3" y1="8.3" x2="13" y2="8.3" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+        <line x1="3" y1="11.7" x2="13" y2="11.7" stroke="#c8913a" strokeWidth="0.5" opacity="0.4"/>
+      </svg>
+      <span className="text-[10px] font-bold text-waffle">New</span>
+    </span>
+  );
 }
 
 function EmptyPlateIcon() {
@@ -90,9 +114,16 @@ export default async function DashboardPage() {
     rawPairs.map(async (p) => ({
       ...p,
       streak: await getStreak(p.id, user.id),
+      hasNew: await hasNewContent(user.id, "pair", p.id).catch(() => false),
     }))
   );
-  const circles = await getUserCircles(user.id);
+  const rawCircles = await getUserCircles(user.id);
+  const circles = await Promise.all(
+    rawCircles.map(async (c) => ({
+      ...c,
+      hasNew: await hasNewContent(user.id, "circle", c.id).catch(() => false),
+    }))
+  );
 
   return (
     <main className="mx-auto max-w-lg p-6">
@@ -137,6 +168,7 @@ export default async function DashboardPage() {
                     {circle.member_count} member{circle.member_count !== 1 ? "s" : ""}
                   </p>
                 </div>
+                {circle.hasNew && <NewWaffleBadge />}
               </div>
             </Link>
           ))}
@@ -187,11 +219,14 @@ export default async function DashboardPage() {
                   <p className="font-display font-semibold text-syrup">{pair.partner_name}</p>
                   <p className="text-sm text-waffle-dark/60">{pair.partner_email}</p>
                 </div>
-                {pair.streak > 0 && (
-                  <span className="counter-retro">
-                    {String(pair.streak).padStart(3, "0")}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {pair.hasNew && <NewWaffleBadge />}
+                  {pair.streak > 0 && (
+                    <span className="counter-retro">
+                      {String(pair.streak).padStart(3, "0")}
+                    </span>
+                  )}
+                </div>
               </div>
             </Link>
           ))}

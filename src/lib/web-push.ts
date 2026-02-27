@@ -243,6 +243,11 @@ export async function sendPushNotification(
     return false;
   }
 
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    console.error(`Push notification failed: ${response.status} ${response.statusText}`, body);
+  }
+
   return response.ok;
 }
 

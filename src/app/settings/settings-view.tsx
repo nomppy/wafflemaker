@@ -123,10 +123,15 @@ export function SettingsView({
         return;
       }
 
+      // Fetch VAPID public key from server (not build-time env var, which may be missing on CF)
+      const vapidRes = await fetch("/api/push/vapid-key");
+      if (!vapidRes.ok) throw new Error("Could not fetch VAPID key");
+      const { key: vapidPublicKey } = await vapidRes.json();
+
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        applicationServerKey: vapidPublicKey,
       });
 
       const json = subscription.toJSON();
